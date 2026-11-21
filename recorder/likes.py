@@ -149,6 +149,9 @@ def _poll_device(device_code):
             dev["error"] = f"เชื่อมไม่สำเร็จ: {e}"
             update(lambda d: d.update(device=dev))
             return
+        except Exception as e:  # network hiccup (timeout, DNS…) — keep waiting instead of dying silently
+            log.warning("device poll: %s", e)
+            continue
 
         def done(d):
             d.update(refresh_token=tok.get("refresh_token", ""), access_token=tok["access_token"],
@@ -284,7 +287,23 @@ def mark(vid, status):
     update(fn)
 
 
+def resume_device_flow():
+    """After a restart, keep waiting on a sign-in that was still in progress."""
+    dev = load().get("device") or {}
+    if dev.get("device_code") and not dev.get("error") and time.time() < dev.get("expires", 0):
+        log.info("resuming YouTube sign-in wait")
+        threading.Thread(target=_poll_device, args=(dev["device_code"],), daemon=True, name="yt-device").start()
+
+
+def cancel_device_flow():
+    update(lambda d: d.update(device={}))
+
+
 def run_forever():
+    try:
+        resume_device_flow()
+    except Exception:
+        log.exception("resume sign-in failed")
     time.sleep(20)
     while True:
         try:

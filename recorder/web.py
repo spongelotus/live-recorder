@@ -715,7 +715,9 @@ class Handler(BaseHTTPRequestHandler):
 <li>ใส่รหัสนี้</li></ol><div class="code-big">{E(dev["user_code"])}</div>
 <ol class="steps" start="3"><li>เลือกบัญชี YouTube ที่ใช้กดไลค์</li>
 <li>ถ้าขึ้น “Google hasn’t verified this app” กด <b>Advanced</b> → <b>Go to … (unsafe)</b> → <b>Continue</b> (เป็นแอปของเราเอง ไม่เป็นไร)</li></ol>
-<p class="muted">หน้านี้จะรีเฟรชเองเมื่อเชื่อมสำเร็จ</p></div>''')
+<p class="muted">หน้านี้จะรีเฟรชเองเมื่อเชื่อมสำเร็จ</p>
+<div class="actions"><form method="post" action="/likes/connect"><button class="gray sm">ขอรหัสใหม่</button></form>
+<form method="post" action="/likes/cancel"><button class="gray sm">ยกเลิก</button></form></div></div>''')
         else:
             if dev.get("error"):
                 parts.append(f'<div class="flash" style="background:#ffe0d8;color:#b2321d">{E(dev["error"])}</div>')
@@ -794,6 +796,9 @@ class Handler(BaseHTTPRequestHandler):
                 likes.start_device_flow()
             except Exception as e:
                 likes.update(lambda d: d.update(device={"error": f"เริ่มเชื่อมไม่ได้: {e}"}))
+            return self.redirect("/likes")
+        if path == "/likes/cancel":
+            likes.cancel_device_flow()
             return self.redirect("/likes")
         if path == "/likes/disconnect":
             likes.disconnect()
