@@ -171,7 +171,7 @@ details.fold[open]>summary::before{transform:rotate(90deg)}
 .big small{font-size:15px;color:var(--muted);letter-spacing:0;font-weight:400;margin-left:4px}
 .stats{display:flex;gap:8px;flex-wrap:wrap}
 .stat{background:rgba(255,255,255,.08);border-radius:14px;padding:8px 12px;min-width:110px;flex:1}
-.stat b{display:block;font-size:20px;font-weight:300;letter-spacing:-.03em}.stat span{font-size:12px;color:#a9a9a4}
+.stat b{display:block;font-size:clamp(32px,9vw,40px);line-height:1.1;font-weight:300;letter-spacing:-.03em}.stat span{font-size:12px;color:#a9a9a4}
 .hello{font-size:20px;font-weight:500;letter-spacing:-.02em;line-height:1.2;margin:0}
 """
 
