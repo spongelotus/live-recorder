@@ -266,6 +266,10 @@ class Handler(BaseHTTPRequestHandler):
             return self.login_page()
         if path == "/health":
             return self.send_html("ok")
+        if path == "/about":
+            return self.about_page()
+        if path == "/privacy":
+            return self.privacy_page()
         if not self.authed():
             return self.redirect("/login")
         if path == "/":
@@ -320,6 +324,49 @@ class Handler(BaseHTTPRequestHandler):
         self.send_html("not found", 404)
 
     # ---------- login ----------
+    # ---------- public pages (needed for Google OAuth "In production") ----------
+    def about_page(self):
+        body = ('<div class="card" style="max-width:680px;margin:0 0 40px">'
+                '<p style="margin-top:0"><b>spongelotus Hub</b> เป็นเว็บผู้ช่วยส่วนตัวของเจ้าของคนเดียว '
+                'ไม่เปิดให้บุคคลทั่วไปสมัครใช้งาน</p>'
+                '<p>ส่วน <b>Likes</b> ใช้ YouTube Data API (สิทธิ์อ่านอย่างเดียว) เพื่อดูรายการคลิปที่เจ้าของกดไลค์ '
+                'แล้วส่งแจ้งเตือนไปที่มือถือของเจ้าของ ให้กดโพสต์ลิงก์คลิปลง X ด้วยตัวเอง</p>'
+                '<p lang="en" class="muted">spongelotus Hub is a private, single-user personal assistant. '
+                'Its Likes feature uses the YouTube Data API (read-only) to see videos the owner has liked '
+                'and sends the owner a phone notification to share them on X manually.</p>'
+                '<div class="actions"><a class="btn gray" href="/privacy">นโยบายความเป็นส่วนตัว / Privacy policy</a>'
+                '<a class="btn" href="/login">เข้าสู่ระบบ</a></div></div>')
+        self.send_html(page("เกี่ยวกับ spongelotus Hub", body, nav=False, heading="spongelotus Hub"))
+
+    def privacy_page(self):
+        body = ('<div class="card" style="max-width:680px;margin:0 0 40px">'
+                '<p class="muted" style="margin-top:0">ปรับปรุงล่าสุด 22 พฤศจิกายน 2026</p>'
+                '<p>spongelotus Hub เป็นเว็บที่ใช้ส่วนตัวโดยเจ้าของคนเดียว นโยบายนี้อธิบายว่าแอปใช้ข้อมูลจากบัญชี Google อย่างไร</p>'
+                '<h3>ข้อมูลที่เข้าถึง</h3><p>เมื่อเจ้าของเชื่อมบัญชี YouTube แอปขอสิทธิ์ '
+                '<code>youtube.readonly</code> (อ่านอย่างเดียว) เพื่ออ่านชื่อช่องของเจ้าของ และรายการคลิปที่กดไลค์ '
+                '(ชื่อคลิปและลิงก์) เท่านั้น แอปไม่โพสต์ แก้ไข หรือลบอะไรใน YouTube</p>'
+                '<h3>การใช้ข้อมูล</h3><p>ใช้เพื่อส่งแจ้งเตือนเรื่องคลิปที่ไลค์ไปยังมือถือของเจ้าของ '
+                'เพื่อให้เจ้าของเลือกกดโพสต์ลิงก์ลง X ด้วยตัวเองเท่านั้น</p>'
+                '<h3>การจัดเก็บและการแชร์</h3><p>Token และรายการคลิปที่ส่งแจ้งเตือนแล้วเก็บไว้บนเซิร์ฟเวอร์ส่วนตัวของเจ้าของเท่านั้น '
+                'ไม่ขาย ไม่แชร์ ไม่ส่งต่อให้บุคคลอื่น และไม่ใช้เพื่อโฆษณา</p>'
+                '<h3>การยกเลิกและลบข้อมูล</h3><p>กด "ยกเลิกการเชื่อม" ในหน้า Likes เพื่อลบ token ออกจากเซิร์ฟเวอร์ '
+                'หรือถอนสิทธิ์ได้ทุกเมื่อที่ <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a></p>'
+                '<p>การใช้ข้อมูลที่ได้รับจาก Google API เป็นไปตาม '
+                '<a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a> '
+                'รวมถึงข้อกำหนด Limited Use</p>'
+                '<h3>ติดต่อ</h3><p>spongelotus@gmail.com</p>'
+                '<hr style="border:0;border-top:1px solid #ddd;margin:20px 0">'
+                '<div lang="en" class="muted"><p><b>Privacy policy (English).</b> spongelotus Hub is a private app used only by its owner. '
+                'With the owner\'s consent it requests the read-only <code>youtube.readonly</code> scope to read the owner\'s channel name '
+                'and liked videos (titles and links), solely to send the owner phone notifications for sharing them on X manually. '
+                'It never posts, edits or deletes anything on YouTube. Tokens and notification history are stored only on the owner\'s '
+                'private server and are never sold, shared or used for advertising. Access can be removed at any time with '
+                '"Disconnect" on the Likes page or at myaccount.google.com/permissions. Use of information received from Google APIs '
+                'adheres to the Google API Services User Data Policy, including the Limited Use requirements. '
+                'Contact: spongelotus@gmail.com</p></div>'
+                '<div class="actions"><a class="btn gray" href="/about">กลับ</a></div></div>')
+        self.send_html(page("นโยบายความเป็นส่วนตัว", body, nav=False, heading="นโยบายความเป็นส่วนตัว"))
+
     def login_page(self, error=""):
         err = f'<p class="soon" style="margin:0 0 8px">{E(error)}</p>' if error else ""
         body = (f'<div class="card" style="max-width:400px;margin:0 0 40px">{err}'
