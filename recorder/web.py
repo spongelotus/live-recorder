@@ -42,98 +42,157 @@ def check_token(cfg, token):
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
          '<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600'
-         '&family=Geist+Mono:wght@400;500&family=Anuphan:wght@400;500;600&display=swap" rel="stylesheet">')
+         '&family=Geist+Mono:wght@400;500&family=Anuphan:wght@300;400;500;600&display=swap" rel="stylesheet">')
 
-# Same visual language as spongelotus.work: pure white, near-black ink, one soft blue accent,
-# Geist + Geist Mono (Thai falls back to DB Helvethaica if installed, else Noto Sans Thai).
+# Soft "bento" app look: warm grey canvas, big rounded white cards, near-black dark surfaces,
+# one pastel colour per section (recorder coral, subscriptions lime, likes lavender), light big numbers.
 CSS = """
-:root{--bg:#fff;--page:#eef0f3;--soft:#f3f4f6;--line:#dfe3e8;--line2:#c9cfd6;--ink:#0f1419;--ink2:#2b333c;--muted:#56606b;--accent:#2f7cf6;
---c-blue:#a9c8da;--c-dusty:#96afc0;--c-beige:#d6c8b8;--c-taupe:#a69a8c;--c-sage:#a3b8a4;--red:#e5484d;
---rec:#ff4f45;--subs:#2f7cf6;--likes:#8e4ff0;--set:#1c2126;--acc:var(--ink);
+:root{--canvas:#ebeae5;--card:#fff;--soft:#f4f3ef;--soft2:#e9e8e2;--ink:#151515;--ink2:#3a3a38;--muted:#6f6e69;
+--dark:#1c1c1c;--lime:#d3e27f;--line:#e2e1db;
+--rec:#ffb4a3;--rec-ink:#b2321d;--subs:#d3e27f;--subs-ink:#4f5d0f;--likes:#d7cdfb;--likes-ink:#5130b8;
+--acc:var(--lime);--acc-ink:var(--ink);
 --sans:"Geist","Anuphan",system-ui,-apple-system,"Segoe UI",sans-serif;
 --mono:"Geist Mono","Anuphan",ui-monospace,Menlo,monospace;color-scheme:light}
+.k-rec{--acc:var(--rec);--acc-ink:var(--rec-ink)}.k-subs{--acc:var(--subs);--acc-ink:var(--subs-ink)}
+.k-likes{--acc:var(--likes);--acc-ink:var(--likes-ink)}
 *{box-sizing:border-box}html,body{margin:0;overflow-x:clip}
-body{background:var(--page);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
-a{color:inherit;text-decoration:none}:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
-.wrap{max-width:980px;margin:0 auto;padding:0 clamp(16px,3.5vw,40px)}
-header{background:var(--bg);border-bottom:1px solid var(--line)}
-header .wrap{display:flex;justify-content:space-between;align-items:center;gap:16px;height:64px}
-.logo{font-weight:600;letter-spacing:-.02em;display:flex;align-items:center;gap:8px;white-space:nowrap;font-size:14px}
-.logo::before{content:"";width:10px;height:10px;border-radius:50%;background:conic-gradient(var(--c-blue),var(--c-sage),var(--c-beige),var(--c-taupe),var(--c-dusty),var(--c-blue))}
-nav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;font-size:14px}nav::-webkit-scrollbar{display:none}
-nav a{padding:6px 12px;border-radius:999px;color:var(--ink2);font-weight:500;white-space:nowrap;transition:color .2s,background .2s}
-nav a:hover{background:var(--soft)}nav a.on{background:var(--acc);color:#fff}
-@media(max-width:640px){header .wrap{flex-direction:column;align-items:stretch;height:auto;padding-top:14px;padding-bottom:6px;gap:10px}nav{margin:0 -6px}}
-.band{background:color-mix(in srgb,var(--acc) 9%,#fff);border-bottom:1px solid color-mix(in srgb,var(--acc) 22%,#fff)}
-.hero{padding-top:22px;padding-bottom:22px;display:flex;justify-content:space-between;align-items:baseline;gap:6px 24px;flex-wrap:wrap}
-.hero h1{margin:0;font-weight:600;font-size:24px;color:var(--ink);line-height:1.2;letter-spacing:-.02em;display:flex;align-items:center;gap:10px}
-.hero h1::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--acc)}
-.hero .sub{font-family:var(--mono);font-size:12px;color:var(--ink2)}
-main.wrap{padding-top:20px;padding-bottom:96px}
-.card{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:0 0 12px;box-shadow:0 1px 2px rgba(15,20,25,.05)}
-h2{font-size:14px;font-weight:600;color:var(--ink2);margin:28px 0 10px;letter-spacing:0;display:flex;align-items:center;gap:8px}
-h2::before{content:"";width:3px;height:14px;border-radius:2px;background:var(--acc)}
-.card h2::before,.grid h2::before{display:none}
-.card h2:first-child{margin-top:0}
-.title{font-size:17px;font-weight:500;letter-spacing:-.01em}.muted{color:var(--muted);font-size:13px}.note .muted,.note.muted{color:var(--ink2)}
-.mono{font-family:var(--mono)}
-.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12px;
-font-weight:500;background:#e9ecf0;color:var(--ink2);vertical-align:middle;white-space:nowrap}
-.pill.live{background:#ffe1df;color:#c4271f}.pill.live::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--red);animation:blink 1.4s infinite}
-.pill.err{background:#fff0d1;color:#8a5a00}.pill.mock{background:#f3e9dc;color:#7a5b3a}.pill.ok{background:#dcf3e4;color:#1d7a42}
-.pill.blue{background:#edf3f7;color:#4d7590}
+body{background:var(--canvas);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}:focus-visible{outline:2px solid var(--ink);outline-offset:3px;border-radius:8px}
+.wrap{max-width:1040px;margin:0 auto;padding:0 clamp(14px,3vw,32px)}
+
+/* top bar */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:18px;padding-bottom:6px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;letter-spacing:-.02em}
+.brand i{width:38px;height:38px;border-radius:50%;background:conic-gradient(#ffb4a3,#d3e27f,#d7cdfb,#ffb4a3);display:block}
+.brand small{display:block;font-size:12px;font-weight:400;color:var(--muted);letter-spacing:0}
+.seg{display:flex;gap:4px;background:var(--card);padding:5px;border-radius:999px}
+.seg a{display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:999px;font-size:14px;font-weight:500;color:var(--ink2);white-space:nowrap;transition:background .2s}
+.seg a:hover{background:var(--soft)}.seg a.on{background:var(--dark);color:#fff}
+.seg svg{width:17px;height:17px}
+.ibtn{width:42px;height:42px;border-radius:50%;background:var(--card);display:grid;place-items:center;flex:none}
+.ibtn svg{width:19px;height:19px}.ibtn:hover{background:var(--soft2)}
+.tools{display:flex;gap:8px}
+/* mobile: floating dark pill nav at the bottom */
+.dock{display:none}
+@media(max-width:760px){
+ .seg{display:none}
+ .dock{display:flex;position:fixed;left:50%;bottom:14px;transform:translateX(-50%);background:var(--dark);border-radius:999px;padding:6px;gap:4px;z-index:9;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+ .dock a{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;color:#cfcfcf}
+ .dock a svg{width:21px;height:21px}.dock a.on{background:#fff;color:var(--ink)}
+ main.wrap{padding-bottom:120px!important}
+}
+
+/* page title */
+.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:8px 20px;flex-wrap:wrap;padding-top:22px;padding-bottom:16px}
+.hero h1{margin:0;font-size:30px;font-weight:600;letter-spacing:-.03em;line-height:1.15}
+.hero .sub{font-size:13px;color:var(--ink2);background:var(--card);padding:6px 14px;border-radius:999px}
+main.wrap{padding-top:14px;padding-bottom:80px}
+
+/* cards */
+.card{background:var(--card);border-radius:26px;padding:20px 22px;margin:0 0 12px}
+.card.dark{background:var(--dark);color:#fff}.card.dark .muted{color:#a9a9a4}
+.card.tint{background:var(--acc);color:var(--acc-ink)}
+h2{font-size:15px;font-weight:600;color:var(--ink);margin:26px 4px 10px;letter-spacing:-.01em}
+.card h2{margin:0 0 10px}
+.title{font-size:16px;font-weight:500;letter-spacing:-.01em}
+.muted{color:var(--muted);font-size:13px}.mono{font-family:var(--mono)}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;font-size:12px;font-weight:500;
+background:var(--soft2);color:var(--ink2);vertical-align:middle;white-space:nowrap}
+.pill.live{background:#ffe0d8;color:#b2321d}.pill.live::before{content:"";width:7px;height:7px;border-radius:50%;background:#ff4f2e;animation:blink 1.4s infinite}
+.pill.err{background:#ffeec2;color:#7a5200}.pill.mock{background:#efe7da;color:#6e5536}.pill.ok{background:#e3f0b7;color:#435207}
+.pill.acc{background:var(--acc);color:var(--acc-ink)}
 @keyframes blink{50%{opacity:.25}}
-.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
-.row:last-child{border:0;padding-bottom:0}.row:first-child{padding-top:0}
-video{width:100%;max-height:70vh;background:#000;border-radius:10px;margin-top:10px}
-button,.btn{font:inherit;font-size:14px;background:var(--acc);color:#fff;border:1px solid var(--acc);border-radius:999px;padding:8px 18px;
-cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:opacity .2s,background .2s,border-color .2s;white-space:nowrap}
-button:hover,.btn:hover{opacity:.85}
-.btn.gray,button.gray{background:var(--bg);color:var(--ink);border-color:var(--line2)}.btn.gray:hover,button.gray:hover{border-color:var(--ink);opacity:1}
-.btn.red,button.red{background:var(--bg);color:var(--red);border-color:#f1d0cd}
-.btn.sm,button.sm{padding:5px 12px;font-size:13px}
-input,textarea,select{width:100%;padding:10px 12px;border:1px solid var(--line2);border-radius:10px;font:inherit;font-size:15px;
-background:var(--bg);color:var(--ink);transition:border-color .2s}input:focus,textarea:focus,select:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 18%,transparent)}
-input[type=checkbox]{width:auto;margin-right:8px;vertical-align:middle}
+/* lists: each row is its own soft rounded block */
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 16px;background:var(--soft);border-radius:18px;margin-top:8px}
+.row:first-child{margin-top:0}.card>.row:only-child{margin:0}
+.row.plain{background:none;padding:0;border-radius:0;margin:0}
+video{width:100%;max-height:70vh;background:#000;border-radius:18px;margin-top:10px}
+button,.btn{font:inherit;font-size:14px;font-weight:500;background:var(--dark);color:#fff;border:0;border-radius:999px;padding:10px 20px;
+cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:transform .15s,opacity .2s;white-space:nowrap}
+button:hover,.btn:hover{opacity:.88}button:active,.btn:active{transform:scale(.97)}
+.btn.gray,button.gray{background:var(--soft2);color:var(--ink)}
+.btn.acc,button.acc{background:var(--acc);color:var(--acc-ink)}
+.btn.red,button.red{background:#ffe0d8;color:#b2321d}
+.btn.sm,button.sm{padding:7px 14px;font-size:13px}
+input,textarea,select{width:100%;padding:12px 14px;border:0;border-radius:14px;font:inherit;font-size:15px;background:var(--soft);color:var(--ink);
+outline:2px solid transparent;transition:outline-color .2s,background .2s}
+input:focus,textarea:focus,select:focus{outline-color:var(--ink);background:#fff}
+input[type=checkbox]{width:18px;height:18px;margin:0 8px 0 0;vertical-align:-3px;accent-color:var(--dark)}
+label{display:block;font-size:13px;font-weight:500;color:var(--ink2);margin:16px 2px 6px}
 label code{font-size:12px}
-label{display:block;font-size:13px;font-weight:600;color:var(--ink2);margin:16px 0 6px}
-pre{white-space:pre-wrap;font-family:var(--mono);font-size:12px;overflow:auto;margin:0}
+pre{white-space:pre-wrap;font-family:var(--mono);font-size:12px;overflow:auto;margin:0;line-height:1.6}
 .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:16px}
-code{font-family:var(--mono);background:var(--soft);padding:2px 8px;border-radius:6px;font-size:.92em}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
-.grid .card{margin:0;display:flex;flex-direction:column;gap:6px;transition:border-color .2s}a.card:hover{border-color:var(--ink)}
-.big{font-size:34px;font-weight:500;letter-spacing:-.03em;line-height:1.1;margin:6px 0 2px}
-.k-rec{--acc:var(--rec)}.k-subs{--acc:var(--subs)}.k-likes{--acc:var(--likes)}.k-set{--acc:var(--set)}
-.grid .card{padding:0;overflow:hidden}.grid .card>.chead{background:color-mix(in srgb,var(--acc) 10%,#fff);border-bottom:1px solid color-mix(in srgb,var(--acc) 20%,#fff);padding:12px 18px;display:flex;justify-content:space-between;align-items:center}
-.grid .card>.cbody{padding:14px 18px 18px;display:flex;flex-direction:column;gap:6px}
-.tag{font-size:14px;font-weight:600;color:color-mix(in srgb,var(--acc) 80%,#000);display:flex;align-items:center;gap:8px;margin:0}
-.tag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--acc)}
-.grid .big{color:var(--acc)}
-.big small{font-size:14px;color:var(--muted);letter-spacing:0;font-weight:400}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
-.soon{color:#c4271f;font-weight:500}.dim{opacity:.55}.note{background:color-mix(in srgb,var(--acc) 7%,#fff);border-color:color-mix(in srgb,var(--acc) 20%,#fff);box-shadow:none;color:var(--ink2)}
-.flash{background:#dcf3e4;border-color:#b9e5c8;color:#14532d;font-size:14px;box-shadow:none}
-ol.steps{margin:0;padding-left:20px}ol.steps li{margin:6px 0}
-.code-big{font-family:var(--mono);font-size:30px;color:var(--acc);letter-spacing:.12em;font-weight:500;margin:6px 0}
-details summary{cursor:pointer;color:var(--muted);font-size:14px;margin-top:8px}
+code{font-family:var(--mono);background:var(--soft2);padding:2px 8px;border-radius:8px;font-size:.92em}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.soon{color:#c2361d;font-weight:500}.dim{opacity:.5}
+.note{background:var(--acc);color:var(--acc-ink)}.note .muted{color:inherit;opacity:.8}
+.flash{background:var(--dark);color:#fff;font-size:14px;border-radius:999px;padding:12px 20px;margin:0 0 12px}
+ol.steps{margin:0;padding-left:20px}ol.steps li{margin:8px 0}
+.code-big{font-family:var(--mono);font-size:32px;letter-spacing:.14em;font-weight:500;margin:8px 0;background:var(--acc);color:var(--acc-ink);display:inline-block;padding:8px 20px;border-radius:18px}
+details summary{cursor:pointer;color:var(--ink2);font-size:14px;margin-top:10px}
+
+/* hub bento */
+.bento{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.bento .card{margin:0;display:flex;flex-direction:column;gap:4px;transition:transform .2s}
+.bento a.card:hover{transform:translateY(-2px)}
+.bento .wide{grid-column:1/-1}
+@media(max-width:900px){.bento{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.bento{grid-template-columns:1fr}}
+.chead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.ico{width:44px;height:44px;border-radius:50%;background:var(--acc);color:var(--acc-ink);display:grid;place-items:center;flex:none}
+.ico svg{width:20px;height:20px}
+.ctitle{display:flex;align-items:center;gap:12px;font-weight:600;font-size:16px;letter-spacing:-.01em}
+.ctitle small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.big{font-size:52px;font-weight:300;letter-spacing:-.04em;line-height:1;margin:10px 0 6px}
+.card.dark .big{font-size:clamp(30px,8.5vw,52px)}
+.big small{font-size:15px;color:var(--muted);letter-spacing:0;font-weight:400;margin-left:4px}
+.stats{display:flex;gap:8px;flex-wrap:wrap}
+.stat{background:rgba(255,255,255,.08);border-radius:18px;padding:12px 16px;min-width:120px}
+.stat b{display:block;font-size:26px;font-weight:300;letter-spacing:-.03em}.stat span{font-size:12px;color:#a9a9a4}
+.hello{font-size:28px;font-weight:500;letter-spacing:-.03em;line-height:1.2;margin:0 0 4px}
 """
 
-NAV = [("/", "Hub"), ("/recorder", "อัดไลฟ์"), ("/subs", "Subscriptions"), ("/likes", "Likes"),
-       ("/settings", "ตั้งค่า"), ("/log", "บันทึก"), ("/logout", "ออก")]
+ICONS = {
+    "home": '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+    "rec": '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/>',
+    "card": '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18M7 15h4"/>',
+    "heart": '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
+    "gear": '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+    "log": '<path d="M5 4h14v16H5z"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4"/>',
+    "out": '<path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/>',
+    "play": '<path d="M8 5.5v13l11-6.5z"/>',
+}
 
 
-SECTION = {"/": "k-set", "/recorder": "k-rec", "/subs": "k-subs", "/likes": "k-likes"}
+def icon(name):
+    return (f'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+            f'stroke-linecap="round" stroke-linejoin="round">{ICONS[name]}</svg>')
+
+
+NAV = [("/", "Hub", "home"), ("/recorder", "อัดไลฟ์", "rec"), ("/subs", "Subscriptions", "card"),
+       ("/likes", "Likes", "heart"), ("/settings", "ตั้งค่า", "gear")]
+SECTION = {"/recorder": "k-rec", "/subs": "k-subs", "/likes": "k-likes"}
 
 
 def page(title, body, nav=True, active="", heading=None, sub=""):
-    links = "".join(f'<a href="{h}"{" class=on" if h == active else ""}>{E(t)}</a>' for h, t in NAV) if nav else ""
-    hero = (f'<section class="band"><div class="wrap hero"><h1>{E(heading)}</h1><div class="sub">{sub}</div></div></section>'
+    seg = dock = tools = ""
+    if nav:
+        seg = "".join(f'<a href="{h}"{" class=on" if h == active else ""}>{icon(i)}{E(t)}</a>' for h, t, i in NAV)
+        seg = f'<nav class="seg">{seg}</nav>'
+        dock = "".join(f'<a href="{h}" aria-label="{E(t)}"{" class=on" if h == active else ""}>{icon(i)}</a>'
+                       for h, t, i in NAV)
+        dock = f'<nav class="dock">{dock}</nav>'
+        tools = (f'<div class="tools"><a class="ibtn" href="/log" title="บันทึกระบบ">{icon("log")}</a>'
+                 f'<a class="ibtn" href="/logout" title="ออกจากระบบ">{icon("out")}</a></div>')
+    now = datetime.now(record.TZ)
+    hero = (f'<div class="wrap hero"><h1>{E(heading)}</h1>{f"<div class=sub>{sub}</div>" if sub else ""}</div>'
             if heading else "")
     return (f'<!doctype html><html lang="th"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width,initial-scale=1">'
-            f'<title>{E(title)}</title>{FONTS}<style>{CSS}</style></head><body class="{SECTION.get(active, "k-set")}">'
-            f'<header><div class="wrap"><a class="logo" href="/">spongelotus · hub</a><nav>{links}</nav></div></header>'
-            f'{hero}<main class="wrap">{body}</main></body></html>')
+            f'<meta name="theme-color" content="#ebeae5"><title>{E(title)}</title>{FONTS}<style>{CSS}</style></head>'
+            f'<body class="{SECTION.get(active, "")}"><header class="wrap top">'
+            f'<a class="brand" href="/"><i></i><span>spongelotus<small>{now.strftime("%a %d %b")}</small></span></a>'
+            f'{seg}{tools}</header>{hero}<main class="wrap">{body}</main>{dock}</body></html>')
 
 
 def list_recordings():
@@ -293,7 +352,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def flash(self, table):
         msg = table.get((self.query().get("msg") or [""])[0], "")
-        return f'<div class="card flash">{E(msg)}</div>' if msg else ""
+        return f'<div class="flash">{E(msg)}</div>' if msg else ""
 
     # ---------- recorder ----------
     def home(self):
@@ -353,7 +412,7 @@ class Handler(BaseHTTPRequestHandler):
                     f'{" · %sx%s" % (f["width"], f["height"]) if f.get("width") else ""}')
             player = (f'<details><summary>ดูเลย</summary><video controls preload="none" playsinline '
                       f'src="{url}"></video></details>') if f["name"].endswith(".mp4") else ""
-            body.append(f'<div style="margin-top:14px"><div class="row" style="padding:0;border:0"><div class="mono" style="font-size:13px">'
+            body.append(f'<div style="margin-top:14px"><div class="row plain"><div class="mono" style="font-size:13px">'
                         f'{E(f["name"])}<div class="muted">{info}</div></div>'
                         f'<a class="btn gray sm" href="{url}?dl=1">โหลด</a></div>{player}</div>')
         if status == "failed" and not body:
@@ -361,7 +420,7 @@ class Handler(BaseHTTPRequestHandler):
         delete = (f'<form method="post" action="/delete" onsubmit="return confirm(\'ลบไลฟ์นี้ถาวร?\')">'
                   f'<input type="hidden" name="path" value="{E(r["_path"])}">'
                   f'<button class="red sm">ลบ</button></form>')
-        return (f'<div class="card"><div class="row" style="align-items:flex-start;padding:0;border:0">'
+        return (f'<div class="card"><div class="row plain" style="align-items:flex-start">'
                 f'<div>{head}</div>{delete}</div>{"".join(body)}</div>')
 
     # ---------- hub ----------
@@ -374,48 +433,61 @@ class Handler(BaseHTTPRequestHandler):
         du = shutil.disk_usage(settings.DATA_DIR)
         free_pct = du.free / du.total * 100 if du.total else 0
         n_acc = len(cfg["accounts"]) + len(cfg["ig_accounts"])
-        pill = (f'<span class="pill live">REC {len(live)}</span>' if live else '<span class="pill">idle</span>')
-        rec_main = (f'<div class="big">{len(live)}<small> กำลังอัด</small></div><div>{E(", ".join(live))}</div>'
-                    if live else '<div class="big">0<small> กำลังอัด</small></div>')
-        err_line = f'<div class="muted soon">เช็กไม่ได้ {errs} บัญชี</div>' if errs else ""
-        rec_card = (f'<a class="card k-rec" href="/recorder"><div class="chead"><p class="tag">อัดไลฟ์</p>{pill}</div>'
-                    f'<div class="cbody">{rec_main}'
-                    f'<div class="muted">เฝ้า {n_acc} บัญชี · เก็บไว้ {len(list_recordings())} ไลฟ์</div>'
-                    f'<div class="muted mono">disk free {du.free / (1 << 30):.1f} GB · {free_pct:.0f}%</div>{err_line}</div></a>')
-
+        n_recs = len(list_recordings())
         data = subs.load()
         month, year = subs.totals(data)
         up = subs.upcoming(data, 30)
-        lines = []
-        for n, it in up[:4]:
-            when = "วันนี้" if n == 0 else f"{n} วัน"
-            cls = "soon " if n <= int(data.get("remind_days") or 3) else ""
-            lines.append(f'<div class="row"><span>{E(it["name"])}</span><span class="{cls}mono" style="font-size:13px">{when}</span></div>')
-        up_html = ("".join(lines) if lines else '<div class="muted">30 วันข้างหน้าไม่มีตัดบัตร</div>')
-        n_cancel = sum(1 for it in data["items"] if it.get("status") == "cancelling")
-        cancel = f'<span class="pill err">รอยกเลิก {n_cancel}</span>' if n_cancel else ""
-        subs_card = (f'<a class="card k-subs" href="/subs"><div class="chead"><p class="tag">Subscriptions</p>{cancel}</div>'
-                     f'<div class="cbody"><div class="big">{subs.fmt_money(month)}<small> / เดือน</small></div>'
-                     f'<div class="muted mono">≈ {subs.fmt_money(year)} / ปี</div>'
-                     f'<h2 style="margin:14px 0 2px">ตัดบัตรเร็ว ๆ นี้</h2>{up_html}</div></a>')
-
         ld = likes.load()
-        if likes.connected(ld):
-            pend = [it for it in ld["items"] if it.get("status") == "pending"]
-            last = ld["items"][0]["title"] if ld["items"] else "ยังไม่มีคลิปใหม่"
-            lpill = '<span class="pill err">มีปัญหา</span>' if ld.get("last_error") else '<span class="pill ok">on</span>'
-            likes_main = (f'<div class="big">{len(pend)}<small> รอโพสต์</small></div>'
-                          f'<div class="muted">ล่าสุด: {E(last)}</div>')
-        else:
-            lpill = '<span class="pill">ยังไม่เชื่อม</span>'
-            likes_main = '<div class="muted" style="margin-top:6px">กดไลค์คลิป YouTube แล้วเด้งแจ้งเตือนให้แตะโพสต์ลง X — แตะเพื่อตั้งค่า</div>'
-        likes_card = (f'<a class="card k-likes" href="/likes"><div class="chead"><p class="tag">YouTube Likes → X</p>{lpill}</div>'
-                      f'<div class="cbody">{likes_main}</div></a>')
+        pend = [it for it in ld["items"] if it.get("status") == "pending"]
 
         now = datetime.now(record.TZ)
         greet = "อรุณสวัสดิ์" if now.hour < 12 else "สวัสดีตอนบ่าย" if now.hour < 18 else "สวัสดีตอนเย็น"
-        body = f'<div class="grid">{rec_card}{subs_card}{likes_card}</div>'
-        self.send_html(page("Hub", body, active="/", heading=greet, sub=now.strftime("%a %d %b %Y · %H:%M")))
+        nxt = (f'{E(up[0][1]["name"])} {"วันนี้" if up[0][0] == 0 else f"อีก {up[0][0]} วัน"}' if up else "ไม่มีใน 30 วัน")
+        summary = (f'<div class="card dark wide"><p class="hello">{greet}, Bua</p>'
+                   f'<div class="muted">{now.strftime("%A %d %B %Y · %H:%M")}</div>'
+                   f'<div class="stats" style="margin-top:16px">'
+                   f'<div class="stat"><b>{len(live)}</b><span>กำลังอัดไลฟ์</span></div>'
+                   f'<div class="stat"><b>{subs.fmt_money(month)}</b><span>subscriptions / เดือน</span></div>'
+                   f'<div class="stat"><b>{len(pend)}</b><span>คลิปรอโพสต์ X</span></div>'
+                   f'<div class="stat"><b style="font-size:17px;padding:6px 0">{nxt}</b><span>ตัดบัตรครั้งถัดไป</span></div>'
+                   f'</div></div>')
+
+        pill = (f'<span class="pill live">REC {len(live)}</span>' if live else '<span class="pill">idle</span>')
+        who = f'<div class="title">{E(", ".join(live))}</div>' if live else ""
+        err_line = f'<div class="muted soon">เช็กไม่ได้ {errs} บัญชี</div>' if errs else ""
+        rec_card = (f'<a class="card k-rec" href="/recorder"><div class="chead"><div class="ctitle">'
+                    f'<span class="ico">{icon("rec")}</span><span>อัดไลฟ์<small>TikTok · Instagram</small></span></div>{pill}</div>'
+                    f'<div class="big">{len(live)}<small>กำลังอัด</small></div>{who}'
+                    f'<div class="row"><span>เฝ้าอยู่</span><b>{n_acc} บัญชี</b></div>'
+                    f'<div class="row"><span>ไลฟ์ที่เก็บไว้</span><b>{n_recs}</b></div>'
+                    f'<div class="row"><span>พื้นที่ว่าง</span><b>{du.free / (1 << 30):.0f} GB · {free_pct:.0f}%</b></div>{err_line}</a>')
+
+        lines = []
+        for n, it in up[:3]:
+            when = "วันนี้" if n == 0 else f"{n} วัน"
+            cls = ' class="soon"' if n <= int(data.get("remind_days") or 3) else ""
+            lines.append(f'<div class="row"><span>{E(it["name"])}</span><b{cls}>{when}</b></div>')
+        up_html = "".join(lines) or '<div class="row"><span class="muted">30 วันข้างหน้าไม่มีตัดบัตร</span></div>'
+        n_cancel = sum(1 for it in data["items"] if it.get("status") == "cancelling")
+        cancel = f'<span class="pill err">รอยกเลิก {n_cancel}</span>' if n_cancel else ""
+        subs_card = (f'<a class="card k-subs" href="/subs"><div class="chead"><div class="ctitle">'
+                     f'<span class="ico">{icon("card")}</span><span>Subscriptions<small>≈ {subs.fmt_money(year)} / ปี</small></span></div>{cancel}</div>'
+                     f'<div class="big">{subs.fmt_money(month)}<small>/ เดือน</small></div>{up_html}</a>')
+
+        if likes.connected(ld):
+            last = ld["items"][0]["title"] if ld["items"] else "ยังไม่มีคลิปใหม่"
+            lpill = '<span class="pill err">มีปัญหา</span>' if ld.get("last_error") else '<span class="pill ok">on</span>'
+            likes_main = (f'<div class="big">{len(pend)}<small>รอโพสต์</small></div>'
+                          f'<div class="row" style="display:block"><div class="muted">ล่าสุด</div><div>{E(last)}</div></div>')
+        else:
+            lpill = '<span class="pill">ยังไม่เชื่อม</span>'
+            likes_main = ('<div class="row" style="display:block;margin-top:10px">กดไลค์คลิป YouTube แล้วเด้งแจ้งเตือน'
+                          'ให้แตะโพสต์ลง X</div><div class="actions"><span class="btn acc sm">ตั้งค่าเลย</span></div>')
+        likes_card = (f'<a class="card k-likes" href="/likes"><div class="chead"><div class="ctitle">'
+                      f'<span class="ico">{icon("heart")}</span><span>Likes<small>YouTube → X</small></span></div>{lpill}</div>'
+                      f'{likes_main}</a>')
+        body = f'<div class="bento">{summary}{rec_card}{subs_card}{likes_card}</div>'
+        self.send_html(page("Hub", body, active="/", heading=None))
 
     # ---------- subscriptions ----------
     def subs_page(self):
@@ -424,10 +496,10 @@ class Handler(BaseHTTPRequestHandler):
         rate = float(data.get("usd_rate") or 33)
         month, year = subs.totals(data)
         parts = [self.flash({"saved": "บันทึกแล้ว", "deleted": "ลบแล้ว"})]
-        parts.append(f'<div class="card two"><div><h2 style="margin:0">ต่อเดือน</h2>'
-                     f'<div class="big">{subs.fmt_money(month)}</div></div><div><h2 style="margin:0">ต่อปี</h2>'
-                     f'<div class="big">{subs.fmt_money(year)}</div></div>'
-                     f'<div class="muted" style="grid-column:1/3;margin-top:6px">นับเฉพาะรายเดือน/รายปีที่ยังไม่ยกเลิก · '
+        parts.append(f'<div class="card dark"><div class="two"><div><div class="muted">ต่อเดือน</div>'
+                     f'<div class="big">{subs.fmt_money(month)}</div></div><div><div class="muted">ต่อปี</div>'
+                     f'<div class="big">{subs.fmt_money(year)}</div></div></div>'
+                     f'<div class="muted" style="margin-top:8px">นับเฉพาะรายเดือน/รายปีที่ยังไม่ยกเลิก · '
                      f'<span class="mono">1 USD = {rate:g} THB</span></div></div>')
         if any(it.get("mock") for it in data["items"]):
             parts.append('<div class="card note muted">รายการที่มีป้าย <span class="pill mock">ตัวอย่าง</span> '
@@ -566,7 +638,7 @@ class Handler(BaseHTTPRequestHandler):
                       '<span class="pill ok">ทำงานอยู่</span>' if d.get("enabled") else '<span class="pill">ปิดอยู่</span>')
             last = (datetime.fromtimestamp(d["last_check"], record.TZ).strftime("%H:%M") if d.get("last_check") else "–")
             err = f'<p class="soon" style="margin:8px 0 0">{E(d["last_error"])}</p>' if d.get("last_error") else ""
-            parts.append(f'<div class="card"><div class="row" style="padding:0;border:0"><div>'
+            parts.append(f'<div class="card"><div class="row plain"><div>'
                          f'<span class="title">เชื่อม YouTube แล้ว</span><span class="muted">{acct}</span>'
                          f'<div class="muted mono">เช็กล่าสุด {last} · ทุก {int(d.get("interval_min") or 10)} นาที</div></div>'
                          f'{status}</div>{err}<div class="actions"><form method="post" action="/likes/check-now">'
@@ -599,7 +671,7 @@ class Handler(BaseHTTPRequestHandler):
 <p class="muted">หน้านี้จะรีเฟรชเองเมื่อเชื่อมสำเร็จ</p></div>''')
         else:
             if dev.get("error"):
-                parts.append(f'<div class="card flash soon">{E(dev["error"])}</div>')
+                parts.append(f'<div class="flash" style="background:#ffe0d8;color:#b2321d">{E(dev["error"])}</div>')
             has = bool(d.get("client_id") and d.get("client_secret"))
             parts.append(f'''<div class="card note"><h2>ทำอะไร</h2>
 <p style="margin:0">กดไลค์คลิปบน YouTube → ภายในไม่กี่นาที ntfy เด้งแจ้งเตือน → แตะ → X เปิดพร้อมข้อความ
@@ -705,7 +777,7 @@ class Handler(BaseHTTPRequestHandler):
         msg = {"saved": "บันทึกแล้ว ✅", "sent": "ส่งแจ้งเตือนทดสอบแล้ว — ดูในแอป ntfy",
                "fail": "ส่งแจ้งเตือนไม่สำเร็จ", "pw": "รหัสผ่านใหม่ต้องยาวอย่างน้อย 8 ตัว"}.get(
             (q.get("msg") or [""])[0], "")
-        msghtml = f'<div class="card flash">{E(msg)}</div>' if msg else ""
+        msghtml = f'<div class="flash">{E(msg)}</div>' if msg else ""
         topic = cfg.get("ntfy_topic", "")
         body = f"""{msghtml}
 <h2>อัดไลฟ์</h2><form method="post" action="/settings" class="card">
