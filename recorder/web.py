@@ -634,7 +634,7 @@ class Handler(BaseHTTPRequestHandler):
         date = f'<small>{E(it["next"])}</small>' if it.get("next") and it.get("status") != "cancelled" else ""
         return (f'<a class="row{dim}" href="/subs?edit={E(it["id"])}#form" title="แตะเพื่อแก้"><div style="min-width:0">'
                 f'<span class="title">{E(it["name"])}</span>{tags}'
-                f'<div class="muted line2">{per}{when}{note}</div></div>'
+                f'<div class="muted line2">{(per + when + note).removeprefix(" · ")}</div></div>'
                 f'<div class="price">{price}{date}</div></a>')
 
     def sub_form(self, it):
