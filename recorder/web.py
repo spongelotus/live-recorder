@@ -153,24 +153,26 @@ details.fold[open]>summary::before{transform:rotate(90deg)}
 .sumline .muted{margin-left:auto}
 
 /* hub bento */
-.bento{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.bento .card{margin:0;display:flex;flex-direction:column;gap:4px;transition:transform .2s}
+.bento{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:6px}
+.bento .card{margin:0;display:flex;flex-direction:column;gap:2px;transition:transform .2s}
+.bento .row{background:none;border-radius:0;padding:7px 0;margin:0;border-top:1px solid var(--line);font-size:14px}
+.bento .row .muted,.bento .row>div{min-width:0}.clip{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bento a.card:hover{transform:translateY(-2px)}
 .bento .wide{grid-column:1/-1}
 @media(max-width:900px){.bento{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.bento{grid-template-columns:1fr}}
-.chead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.ico{width:44px;height:44px;border-radius:50%;background:var(--acc);color:var(--acc-ink);display:grid;place-items:center;flex:none}
-.ico svg{width:20px;height:20px}
-.ctitle{display:flex;align-items:center;gap:12px;font-weight:600;font-size:16px;letter-spacing:-.01em}
+.chead{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.ico{width:36px;height:36px;border-radius:50%;background:var(--acc);color:var(--acc-ink);display:grid;place-items:center;flex:none}
+.ico svg{width:18px;height:18px}
+.ctitle{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;letter-spacing:-.01em}
 .ctitle small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
-.big{font-size:52px;font-weight:300;letter-spacing:-.04em;line-height:1;margin:10px 0 6px}
-.card.dark .big{font-size:clamp(30px,8.5vw,52px)}
+.big{font-size:38px;font-weight:300;letter-spacing:-.04em;line-height:1;margin:6px 0 8px}
+.card.dark .big{font-size:clamp(28px,8vw,38px)}
 .big small{font-size:15px;color:var(--muted);letter-spacing:0;font-weight:400;margin-left:4px}
 .stats{display:flex;gap:8px;flex-wrap:wrap}
-.stat{background:rgba(255,255,255,.08);border-radius:18px;padding:12px 16px;min-width:120px}
-.stat b{display:block;font-size:26px;font-weight:300;letter-spacing:-.03em}.stat span{font-size:12px;color:#a9a9a4}
-.hello{font-size:28px;font-weight:500;letter-spacing:-.03em;line-height:1.2;margin:0 0 4px}
+.stat{background:rgba(255,255,255,.08);border-radius:14px;padding:8px 12px;min-width:110px;flex:1}
+.stat b{display:block;font-size:20px;font-weight:300;letter-spacing:-.03em}.stat span{font-size:12px;color:#a9a9a4}
+.hello{font-size:20px;font-weight:500;letter-spacing:-.02em;line-height:1.2;margin:0}
 """
 
 ICONS = {
@@ -521,11 +523,11 @@ class Handler(BaseHTTPRequestHandler):
         nxt = (f'{E(up[0][1]["name"])} {"วันนี้" if up[0][0] == 0 else f"อีก {up[0][0]} วัน"}' if up else "ไม่มีใน 30 วัน")
         summary = (f'<div class="card dark wide"><p class="hello">{greet}, Bua</p>'
                    f'<div class="muted">{now.strftime("%A %d %B %Y · %H:%M")}</div>'
-                   f'<div class="stats" style="margin-top:16px">'
+                   f'<div class="stats" style="margin-top:10px">'
                    f'<div class="stat"><b>{len(live)}</b><span>กำลังอัดไลฟ์</span></div>'
                    f'<div class="stat"><b>{subs.fmt_money(month)}</b><span>subscriptions / เดือน</span></div>'
                    f'<div class="stat"><b>{len(pend)}</b><span>คลิปรอโพสต์ X</span></div>'
-                   f'<div class="stat"><b style="font-size:17px;padding:6px 0">{nxt}</b><span>ตัดบัตรครั้งถัดไป</span></div>'
+                   f'<div class="stat"><b class="clip" style="font-size:15px;padding:3px 0">{nxt}</b><span>ตัดบัตรครั้งถัดไป</span></div>'
                    f'</div></div>')
 
         pill = (f'<span class="pill live">REC {len(live)}</span>' if live else '<span class="pill">idle</span>')
@@ -554,10 +556,10 @@ class Handler(BaseHTTPRequestHandler):
             last = ld["items"][0]["title"] if ld["items"] else "ยังไม่มีคลิปใหม่"
             lpill = '<span class="pill err">มีปัญหา</span>' if ld.get("last_error") else '<span class="pill ok">on</span>'
             likes_main = (f'<div class="big">{len(pend)}<small>รอโพสต์</small></div>'
-                          f'<div class="row" style="display:block"><div class="muted">ล่าสุด</div><div>{E(last)}</div></div>')
+                          f'<div class="row" style="display:block"><div class="muted">ล่าสุด</div><div class="clip">{E(last)}</div></div>')
         else:
             lpill = '<span class="pill">ยังไม่เชื่อม</span>'
-            likes_main = ('<div class="row" style="display:block;margin-top:10px">กดไลค์คลิป YouTube แล้วเด้งแจ้งเตือน'
+            likes_main = ('<div class="row" style="display:block">กดไลค์คลิป YouTube แล้วเด้งแจ้งเตือน'
                           'ให้แตะโพสต์ลง X</div><div class="actions"><span class="btn acc sm">ตั้งค่าเลย</span></div>')
         likes_card = (f'<a class="card k-likes" href="/likes"><div class="chead"><div class="ctitle">'
                       f'<span class="ico">{icon("heart")}</span><span>Likes<small>YouTube → X</small></span></div>{lpill}</div>'
