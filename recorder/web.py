@@ -789,7 +789,7 @@ class Handler(BaseHTTPRequestHandler):
 <input name="retention_days" type="number" min="0" value="{cfg.get("retention_days", 0)}">
 <label>ถ้าดิสก์ว่างน้อยกว่ากี่ GB ให้ลบไลฟ์เก่าสุดอัตโนมัติ</label>
 <input name="min_free_gb" type="number" min="0" value="{cfg.get("min_free_gb", 10)}">
-<label>บัญชี Instagram ที่จะเฝ้า (บรรทัดละ 1 ชื่อ)</label>
+<label>บัญชี Instagram ที่จะเฝ้า (บรรทัดละ 1 ชื่อ) · บัญชีสำรองที่ใช้คุกกี้ต้อง<b>กดติดตาม</b>ทุกบัญชีที่จะเฝ้า</label>
 <textarea name="ig_accounts" rows="4" placeholder="เช่น&#10;@username1">{E(chr(10).join(cfg["ig_accounts"]))}</textarea>
 <label>คุกกี้ Instagram (จำเป็นสำหรับ IG — ใช้บัญชีสำรอง)</label>
 <textarea name="ig_cookies" rows="3" placeholder="sessionid=...; ds_user_id=...; csrftoken=...">{E(cfg.get("ig_cookies", ""))}</textarea>

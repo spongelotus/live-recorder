@@ -25,7 +25,7 @@ https://<ip>.sslip.io  (Caddy ทำ https → 127.0.0.1:8080)
 | `recorder/web.py` | หน้าเว็บทั้งหมด + login (cookie `tkrec`, 30 วัน) |
 | `recorder/subs.py` | ข้อมูล subscription, ยอดรวม, เลื่อนวันต่ออายุ, ส่งเตือน |
 | `recorder/likes.py` | เชื่อม YouTube (OAuth device flow), เช็กเพลย์ลิสต์ LL ทุก N นาทีใน thread แยก, ส่ง ntfy พร้อมลิงก์ x.com/intent/post |
-| `recorder/tiktok.py` / `instagram.py` / `record.py` | ตรวจไลฟ์และอัด |
+| `recorder/tiktok.py` / `instagram.py` / `record.py` | ตรวจไลฟ์และอัด · IG ใช้ reels tray 1 request ต่อรอบ (บัญชีสำรองต้องติดตามเป้าหมาย), เจอ 429 พักอัตโนมัติ 5→60 นาที |
 | `recorder/notify.py` | ส่ง ntfy |
 | `deploy/` | systemd services, ตัวอัปเดตอัตโนมัติ (ดึง GitHub ทุก 3 ชม.), คำสั่ง `liverec` |
 
