@@ -229,7 +229,7 @@ class Handler(BaseHTTPRequestHandler):
                 pill = f'<span class="pill err" title="{E(st.get("error", ""))}">เช็กไม่ได้</span>'
             else:
                 pill = '<span class="pill off">รอเช็ก</span>'
-            checked = time.strftime("%H:%M:%S", time.localtime(st["checked"])) if st.get("checked") else "-"
+            checked = datetime.fromtimestamp(st["checked"], record.TZ).strftime("%H:%M:%S") if st.get("checked") else "-"
             err = f'<div class="muted">{E(st.get("error", ""))}</div>' if state == "error" else ""
             rows.append(f'<div class="row"><div><b>@{E(user)}</b> <span class="muted">เช็กล่าสุด {checked}</span>'
                         f'{err}</div>{pill}</div>')

@@ -5,6 +5,7 @@ import os
 import sys
 import threading
 import time
+from datetime import datetime
 
 from . import notify, record, settings, web
 from .tiktok import Blocked, TikTok, TikTokError
@@ -108,6 +109,7 @@ class Manager:
 def setup_logging():
     settings.DATA_DIR.mkdir(parents=True, exist_ok=True)
     fmt = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s", "%Y-%m-%d %H:%M:%S")
+    fmt.converter = lambda ts: datetime.fromtimestamp(ts, record.TZ).timetuple()  # Thai time
     root = logging.getLogger()
     root.setLevel(logging.INFO)
     fh = logging.handlers.RotatingFileHandler(settings.LOG_FILE, maxBytes=2_000_000, backupCount=3,
