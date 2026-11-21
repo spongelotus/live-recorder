@@ -8,6 +8,7 @@ import time
 from datetime import datetime
 
 from . import notify, record, settings, web
+from .instagram import Instagram
 from .tiktok import Blocked, TikTok, TikTokError
 
 log = logging.getLogger("main")
@@ -18,7 +19,7 @@ class Manager:
         self.sessions = {}          # user -> LiveSession
         self.status = {}            # user -> dict(state, checked, error)
         self.last_check = {}
-        self.blocked_notified = 0
+        self.blocked_notified = {}
         self.lock = threading.Lock()
         self.stopping = False
 
@@ -26,55 +27,66 @@ class Manager:
         with self.lock:
             return {u: s for u, s in self.sessions.items() if s.is_alive()}
 
+    def _client(self, platform, cookies):
+        key = (platform, cookies)
+        if getattr(self, "_clients", {}).get(platform, (None, None))[0] != key:
+            self._clients = getattr(self, "_clients", {})
+            self._clients[platform] = (key, Instagram(cookies) if platform == "instagram" else TikTok(cookies))
+        return self._clients[platform][1]
+
     def tick(self):
         cfg = settings.load()
-        tk = TikTok(cfg.get("cookies"))
-        accounts = cfg["accounts"]
+        targets = [("tiktok", u, u) for u in cfg["accounts"]]
+        targets += [("instagram", u, "ig:" + u) for u in cfg["ig_accounts"]]
+        keys = {k for _, _, k in targets}
         # stop recording accounts that were removed
-        for user, sess in list(self.active().items()):
-            if user not in accounts:
-                log.info("@%s removed from list, stopping recording", user)
+        for key, sess in list(self.active().items()):
+            if key not in keys:
+                log.info("%s removed from list, stopping recording", key)
                 sess.stop()
-        for user in accounts:
+        for platform, user, key in targets:
             if self.stopping:
                 return
-            if user in self.active():
-                self.status[user] = {"state": "recording", "checked": time.time(),
-                                     "folder": self.sessions[user].folder.name}
+            if key in self.active():
+                self.status[key] = {"state": "recording", "checked": time.time(),
+                                    "folder": self.sessions[key].folder.name}
                 continue
-            if time.time() - self.last_check.get(user, 0) < cfg["check_interval"]:
+            interval = cfg["ig_check_interval"] if platform == "instagram" else cfg["check_interval"]
+            if time.time() - self.last_check.get(key, 0) < interval:
                 continue
-            self.last_check[user] = time.time()
+            self.last_check[key] = time.time()
+            client = self._client(platform, cfg.get("ig_cookies") if platform == "instagram" else cfg.get("cookies"))
+            name = "Instagram" if platform == "instagram" else "TikTok"
             try:
-                live = tk.get_live(user)
+                live = client.get_live(user)
             except Blocked as e:
-                self.status[user] = {"state": "error", "checked": time.time(), "error": str(e)}
-                log.warning("@%s blocked: %s", user, e)
-                if time.time() - self.blocked_notified > 6 * 3600:
-                    self.blocked_notified = time.time()
-                    notify.send("⚠️ TikTok บล็อกการเช็กไลฟ์",
-                                f"เช็ก @{user} ไม่ได้ ({e}) — ลองใส่คุกกี้ TikTok ในหน้าตั้งค่า",
+                self.status[key] = {"state": "error", "checked": time.time(), "error": str(e)}
+                log.warning("%s blocked: %s", key, e)
+                if time.time() - self.blocked_notified.get(platform, 0) > 6 * 3600:
+                    self.blocked_notified[platform] = time.time()
+                    notify.send(f"⚠️ {name} เช็กไลฟ์ไม่ได้",
+                                f"เช็ก @{user} ไม่ได้ ({e}) — ไปที่หน้าตั้งค่าแล้วใส่/อัปเดตคุกกี้ {name}",
                                 tags=["warning"], click=cfg.get("public_url") or None, priority=4)
                 continue
             except TikTokError as e:
-                self.status[user] = {"state": "error", "checked": time.time(), "error": str(e)}
-                log.info("@%s check failed: %s", user, e)
+                self.status[key] = {"state": "error", "checked": time.time(), "error": str(e)}
+                log.info("%s check failed: %s", key, e)
                 continue
             if live and live.streams:
-                sess = record.LiveSession(user, live, tk)
+                sess = record.LiveSession(user, live, client, platform)
                 with self.lock:
-                    self.sessions[user] = sess
+                    self.sessions[key] = sess
                 sess.start()
-                self.status[user] = {"state": "recording", "checked": time.time(), "folder": sess.folder.name}
+                self.status[key] = {"state": "recording", "checked": time.time(), "folder": sess.folder.name}
             elif live:
-                self.status[user] = {"state": "error", "checked": time.time(),
-                                     "error": "ไลฟ์อยู่แต่ไม่เจอลิงก์วิดีโอ (อาจต้องใช้คุกกี้)"}
+                self.status[key] = {"state": "error", "checked": time.time(),
+                                    "error": "ไลฟ์อยู่แต่ไม่เจอลิงก์วิดีโอ (อาจต้องใช้คุกกี้)"}
             else:
-                self.status[user] = {"state": "offline", "checked": time.time()}
-            time.sleep(1.5)  # be gentle with TikTok
-        for user in list(self.status):
-            if user not in accounts:
-                self.status.pop(user, None)
+                self.status[key] = {"state": "offline", "checked": time.time()}
+            time.sleep(1.5)  # be gentle
+        for key in list(self.status):
+            if key not in keys:
+                self.status.pop(key, None)
 
     def run(self):
         record.finalize_orphans()
@@ -130,7 +142,7 @@ def main():
     port = int(os.environ.get("TKREC_PORT", "8080"))
     host = os.environ.get("TKREC_HOST", "127.0.0.1")
     threading.Thread(target=web.serve, args=(mgr, host, port), daemon=True, name="web").start()
-    log.info("started; watching %s", settings.load()["accounts"])
+    log.info("started; TikTok %s, IG %s", settings.load()["accounts"], settings.load()["ig_accounts"])
     mgr.run()
 
 

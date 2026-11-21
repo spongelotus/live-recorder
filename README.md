@@ -1,4 +1,4 @@
-# Live Recorder (TikTok · IG ตามมาทีหลัง)
+# Live Recorder (TikTok + Instagram)
 
 เฝ้าบัญชี TikTok แล้วอัดไลฟ์อัตโนมัติ 24 ชม. บนเซิร์ฟเวอร์ (Oracle Cloud Always Free)
 

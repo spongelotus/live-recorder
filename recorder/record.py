@@ -26,6 +26,10 @@ STALL_SECONDS = 30      # no new bytes for this long -> reconnect
 MIN_GOOD_BYTES = 200_000
 
 
+def folder_name(user, platform):
+    return f"IG-{user}" if platform == "instagram" else user
+
+
 def now_local():
     return datetime.now(TZ)
 
@@ -57,19 +61,21 @@ def read_info(folder):
 
 
 class LiveSession(threading.Thread):
-    def __init__(self, user, live, tk):
-        super().__init__(name=f"rec-{user}", daemon=True)
+    def __init__(self, user, live, tk, platform="tiktok"):
+        super().__init__(name=f"rec-{platform}-{user}", daemon=True)
         self.user = user
+        self.platform = platform
+        self.label = f"@{user}" + (" (IG)" if platform == "instagram" else "")
         self.live = live
         self.tk = tk
         self.stop_event = threading.Event()
         self.started = now_local()
-        self.folder = settings.RECORDINGS_DIR / user / self.started.strftime("%Y-%m-%d_%H%M%S")
+        self.folder = settings.RECORDINGS_DIR / folder_name(user, platform) / self.started.strftime("%Y-%m-%d_%H%M%S")
         self.folder.mkdir(parents=True, exist_ok=True)
         self.seg_no = 0
         self.proc = None
         self.info = {
-            "user": user, "nickname": live.nickname, "title": live.title,
+            "user": user, "platform": platform, "nickname": live.nickname, "title": live.title,
             "room_id": live.room_id, "started": self.started.isoformat(),
             "ended": None, "status": "recording", "files": [], "segments": 0,
         }
@@ -82,7 +88,7 @@ class LiveSession(threading.Thread):
         log.info("@%s qualities offered: %s", self.user, ", ".join(
             f'{s["quality"]}/{s["kind"]}' + (f' {s["width"]}x{s["height"]}' if s["width"] else "")
             for s in self.live.streams))
-        notify.send(f"🔴 @{self.user} ไลฟ์อยู่ — เริ่มอัดแล้ว",
+        notify.send(f"🔴 {self.label} ไลฟ์อยู่ — เริ่มอัดแล้ว",
                     (self.live.title or "ไม่มีชื่อไลฟ์") + f"\nเริ่ม {self.started:%H:%M} น.",
                     tags=["red_circle"], click=cfg.get("public_url") or None, priority=4)
         try:
@@ -145,17 +151,22 @@ class LiveSession(threading.Thread):
     def _record_segment(self, stream):
         self.seg_no += 1
         out = self.folder / f"seg_{self.seg_no:04d}.ts"
-        cookies = settings.load().get("cookies") or ""
-        headers = "Referer: https://www.tiktok.com/\r\n"
-        if cookies:
-            headers += f"Cookie: {cookies}\r\n"
+        if self.platform == "instagram":
+            headers = "Referer: https://www.instagram.com/\r\n"
+        else:
+            cookies = settings.load().get("cookies") or ""
+            headers = "Referer: https://www.tiktok.com/\r\n"
+            if cookies:
+                headers += f"Cookie: {cookies}\r\n"
         cmd = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-nostdin", "-y",
                "-user_agent", UA, "-headers", headers,
                "-rw_timeout", "20000000"]
         if stream["kind"] == "hls":
             cmd += ["-live_start_index", "-3"]
-        cmd += ["-i", stream["url"], "-map", "0:v?", "-map", "0:a?", "-c", "copy",
-                "-f", "mpegts", str(out)]
+        cmd += ["-i", stream["url"]]
+        if stream["kind"] != "dash":  # for DASH let ffmpeg pick the best video + audio track
+            cmd += ["-map", "0:v?", "-map", "0:a?"]
+        cmd += ["-c", "copy", "-f", "mpegts", str(out)]
         log.info("@%s segment %d: %s %s %sx%s", self.user, self.seg_no, stream["quality"],
                  stream["kind"], stream["width"], stream["height"])
         ident = stream_identity(stream["url"])
@@ -227,11 +238,11 @@ class LiveSession(threading.Thread):
             total = sum(f["size"] for f in files)
             dur = sum(f.get("duration", 0) for f in files)
             parts = f" ({len(files)} ไฟล์)" if len(files) > 1 else ""
-            notify.send(f"✅ อัดไลฟ์ @{self.user} เสร็จแล้ว",
+            notify.send(f"✅ อัดไลฟ์ {self.label} เสร็จแล้ว",
                         f"ยาว {fmt_duration(dur)} · {fmt_size(total)}{parts}\nกดเพื่อดู/โหลด",
                         tags=["white_check_mark"], click=cfg.get("public_url") or None)
         else:
-            notify.send(f"⚠️ @{self.user} ไลฟ์จบ แต่อัดไม่ได้",
+            notify.send(f"⚠️ {self.label} ไลฟ์จบ แต่อัดไม่ได้",
                         "ดึงวิดีโอไม่ได้เลย — เปิดหน้าเว็บดูบันทึก (log) หรือลองใส่คุกกี้ TikTok",
                         tags=["warning"], click=cfg.get("public_url") or None, priority=4)
 
@@ -259,6 +270,8 @@ def finalize_folder(folder, info=None):
     folder = Path(folder)
     info = info or read_info(folder) or {}
     user = info.get("user") or folder.parent.name
+    if info.get("platform") == "instagram":
+        user = f"IG-{user}"
     segs = sorted(folder.glob("seg_*.ts"))
     groups = []
     for seg in segs:

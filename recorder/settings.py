@@ -22,7 +22,10 @@ DEFAULTS = {
     "min_free_gb": 10,         # delete oldest recordings when free disk drops below this
     "cookies": "",             # optional TikTok cookie string (sessionid=...; ...)
     "end_grace_seconds": 180,  # wait this long after stream drops before calling the live finished
-    "keep_ts": False,          # also keep the merged .ts besides .mp4
+    "keep_ts": False,
+    "ig_accounts": [],         # Instagram usernames
+    "ig_cookies": "",          # cookie string of a (spare) Instagram account — required for IG
+    "ig_check_interval": 90,   # Instagram is stricter; check less often
 }
 
 _lock = threading.Lock()
@@ -38,6 +41,8 @@ def load():
                 pass
         data["accounts"] = [clean_username(a) for a in data.get("accounts", []) if clean_username(a)]
         data["check_interval"] = max(20, int(data.get("check_interval") or 60))
+        data["ig_accounts"] = [clean_username(a) for a in data.get("ig_accounts", []) if clean_username(a)]
+        data["ig_check_interval"] = max(45, int(data.get("ig_check_interval") or 90))
         return data
 
 
@@ -59,9 +64,10 @@ def update(**changes):
 
 def clean_username(name):
     name = (name or "").strip()
-    if "tiktok.com/" in name:
-        # accept a pasted profile/live link
-        part = name.split("tiktok.com/", 1)[1]
-        name = part.split("/")[0].split("?")[0]
+    for site in ("tiktok.com/", "instagram.com/"):
+        if site in name:
+            # accept a pasted profile/live link
+            part = name.split(site, 1)[1]
+            name = part.split("/")[0].split("?")[0]
     name = name.lstrip("@").strip()
     return "".join(ch for ch in name if ch.isalnum() or ch in "._")

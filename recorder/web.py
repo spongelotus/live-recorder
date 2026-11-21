@@ -218,8 +218,10 @@ class Handler(BaseHTTPRequestHandler):
 
         # accounts
         rows = []
-        for user in cfg["accounts"]:
-            st = self.mgr.status.get(user, {}) if self.mgr else {}
+        targets = [(u, u, "") for u in cfg["accounts"]] + \
+                  [(u, "ig:" + u, ' <span class="pill off">IG</span>') for u in cfg["ig_accounts"]]
+        for user, key, tag in targets:
+            st = self.mgr.status.get(key, {}) if self.mgr else {}
             state = st.get("state")
             if state == "recording":
                 pill = '<span class="pill live">● กำลังอัด</span>'
@@ -231,12 +233,12 @@ class Handler(BaseHTTPRequestHandler):
                 pill = '<span class="pill off">รอเช็ก</span>'
             checked = datetime.fromtimestamp(st["checked"], record.TZ).strftime("%H:%M:%S") if st.get("checked") else "-"
             err = f'<div class="muted">{E(st.get("error", ""))}</div>' if state == "error" else ""
-            rows.append(f'<div class="row"><div><b>@{E(user)}</b> <span class="muted">เช็กล่าสุด {checked}</span>'
+            rows.append(f'<div class="row"><div><b>@{E(user)}</b>{tag} <span class="muted">เช็กล่าสุด {checked}</span>'
                         f'{err}</div>{pill}</div>')
         if not rows:
             rows.append('<p>ยังไม่มีบัญชีที่เฝ้า — <a href="/settings">เพิ่มในหน้าตั้งค่า</a></p>')
         du = shutil.disk_usage(settings.DATA_DIR)
-        parts.append(f'<h2>บัญชีที่เฝ้า (เช็กทุก {cfg["check_interval"]} วินาที)</h2><div class="card">'
+        parts.append(f'<h2>บัญชีที่เฝ้า (TikTok ทุก {cfg["check_interval"]} วิ · IG ทุก {cfg["ig_check_interval"]} วิ)</h2><div class="card">'
                      f'{"".join(rows)}<form method="post" action="/check-now" class="actions">'
                      f'<button class="btn gray">เช็กเดี๋ยวนี้</button></form></div>'
                      f'<p class="muted">พื้นที่ว่าง {du.free / (1 << 30):.1f} GB จาก {du.total / (1 << 30):.0f} GB</p>')
@@ -252,7 +254,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def rec_card(self, r):
         status = r.get("status")
-        head = (f'<b>@{E(r.get("user", ""))}</b> {E(r.get("nickname") or "")}'
+        ig = ' <span class="pill off">IG</span>' if r.get("platform") == "instagram" else ""
+        head = (f'<b>@{E(r.get("user", ""))}</b>{ig} {E(r.get("nickname") or "")}'
                 f'<div class="muted">{thai_time(r.get("started"))} – '
                 f'{thai_time(r["ended"]) if r.get("ended") else "…"} · {E(r.get("title") or "")}</div>')
         if status == "recording":
@@ -294,6 +297,12 @@ class Handler(BaseHTTPRequestHandler):
 <input name="retention_days" type="number" min="0" value="{cfg.get("retention_days", 0)}">
 <label>ถ้าดิสก์ว่างน้อยกว่ากี่ GB ให้ลบไลฟ์เก่าสุดอัตโนมัติ</label>
 <input name="min_free_gb" type="number" min="0" value="{cfg.get("min_free_gb", 10)}">
+<label>บัญชี Instagram ที่จะเฝ้า (บรรทัดละ 1 ชื่อ)</label>
+<textarea name="ig_accounts" rows="4" placeholder="เช่น&#10;@username1">{E(chr(10).join(cfg["ig_accounts"]))}</textarea>
+<label>คุกกี้ Instagram (จำเป็นสำหรับ IG — ใช้บัญชีสำรอง)</label>
+<textarea name="ig_cookies" rows="3" placeholder="sessionid=...; ds_user_id=...; csrftoken=...">{E(cfg.get("ig_cookies", ""))}</textarea>
+<label>เช็ก IG ทุกกี่วินาที (ต่ำสุด 45 · แนะนำ 90)</label>
+<input name="ig_check_interval" type="number" min="45" value="{cfg["ig_check_interval"]}">
 <label>คุกกี้ TikTok (ไม่บังคับ — ใส่เมื่อเช็กไม่ได้หรือเจอไลฟ์ 18+)</label>
 <textarea name="cookies" rows="3" placeholder="sessionid=...; tt-target-idc=...">{E(cfg.get("cookies", ""))}</textarea>
 <label>เปลี่ยนรหัสผ่านหน้าเว็บ (เว้นว่าง = ใช้รหัสเดิม)</label>
@@ -313,8 +322,16 @@ class Handler(BaseHTTPRequestHandler):
             u = settings.clean_username(line)
             if u and u not in accounts:
                 accounts.append(u)
+        ig_accounts = []
+        for line in f.get("ig_accounts", "").replace(",", "\n").splitlines():
+            u = settings.clean_username(line)
+            if u and u not in ig_accounts:
+                ig_accounts.append(u)
         changes = {
             "accounts": accounts,
+            "ig_accounts": ig_accounts,
+            "ig_cookies": f.get("ig_cookies", "").strip(),
+            "ig_check_interval": max(45, int(f.get("ig_check_interval") or 90)),
             "check_interval": max(20, int(f.get("check_interval") or 60)),
             "retention_days": max(0, int(f.get("retention_days") or 0)),
             "min_free_gb": max(0, float(f.get("min_free_gb") or 0)),
