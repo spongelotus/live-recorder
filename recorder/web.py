@@ -192,8 +192,8 @@ def icon(name):
             f'stroke-linecap="round" stroke-linejoin="round">{ICONS[name]}</svg>')
 
 
-NAV = [("/", "Hub", "home"), ("/recorder", "อัดไลฟ์", "rec"), ("/subs", "Subscriptions", "card"),
-       ("/likes", "Likes", "heart")]
+NAV = [("/", "Hub", "home"), ("/recorder", "อัดไลฟ์", "rec"), ("/likes", "Likes", "heart"),
+       ("/subs", "Subscriptions", "card")]
 SECTION = {"/recorder": "k-rec", "/subs": "k-subs", "/likes": "k-likes"}
 
 
@@ -525,8 +525,8 @@ class Handler(BaseHTTPRequestHandler):
                    f'<div class="muted">{now.strftime("%A %d %B %Y · %H:%M")}</div>'
                    f'<div class="stats" style="margin-top:10px">'
                    f'<div class="stat"><b>{len(live)}</b><span>กำลังอัดไลฟ์</span></div>'
-                   f'<div class="stat"><b>{subs.fmt_money(month)}</b><span>subscriptions / เดือน</span></div>'
                    f'<div class="stat"><b>{len(pend)}</b><span>คลิปรอโพสต์ X</span></div>'
+                   f'<div class="stat"><b>{subs.fmt_money(month)}</b><span>subscriptions / เดือน</span></div>'
                    f'<div class="stat"><b class="clip" style="font-size:15px;padding:3px 0">{nxt}</b><span>ตัดบัตรครั้งถัดไป</span></div>'
                    f'</div></div>')
 
@@ -564,7 +564,7 @@ class Handler(BaseHTTPRequestHandler):
         likes_card = (f'<a class="card k-likes" href="/likes"><div class="chead"><div class="ctitle">'
                       f'<span class="ico">{icon("heart")}</span><span>Likes<small>YouTube → X</small></span></div>{lpill}</div>'
                       f'{likes_main}</a>')
-        body = f'<div class="bento">{summary}{rec_card}{subs_card}{likes_card}</div>'
+        body = f'<div class="bento">{summary}{rec_card}{likes_card}{subs_card}</div>'
         self.send_html(page("Hub", body, active="/", heading=None))
 
     # ---------- subscriptions ----------
