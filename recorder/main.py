@@ -7,7 +7,7 @@ import threading
 import time
 from datetime import datetime
 
-from . import notify, record, settings, web
+from . import notify, record, settings, subs, web
 from .instagram import Instagram
 from .tiktok import Blocked, TikTok, TikTokError
 
@@ -91,6 +91,7 @@ class Manager:
     def run(self):
         record.finalize_orphans()
         last_cleanup = 0
+        last_subs = 0
         while not self.stopping:
             try:
                 self.tick()
@@ -102,6 +103,12 @@ class Manager:
                     record.cleanup()
                 except Exception:
                     log.exception("cleanup failed")
+            if time.time() - last_subs > 3600:
+                last_subs = time.time()
+                try:
+                    subs.check_reminders()
+                except Exception:
+                    log.exception("subscription reminders failed")
             # self-update: restart only when nothing is recording
             if settings.RESTART_FLAG.exists() and not self.active():
                 settings.RESTART_FLAG.unlink(missing_ok=True)

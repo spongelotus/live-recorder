@@ -1,4 +1,11 @@
-# Live Recorder (TikTok + Instagram)
+# ผู้ช่วยส่วนตัว — Live Recorder + Subscriptions
+
+หน้าแรกเป็น Hub สรุปทุกส่วน · ล็อกอินครั้งเดียวเข้าได้ทุกหน้า · โครงสร้างทั้งหมดอยู่ใน [PLAN.md](PLAN.md)
+
+- `/recorder` อัดไลฟ์ TikTok + Instagram
+- `/subs` รวม subscription ที่จ่ายอยู่ ยอดรวมต่อเดือน/ปี และแจ้งเตือนผ่าน ntfy ก่อนตัดบัตร
+
+## Live Recorder
 
 เฝ้าบัญชี TikTok แล้วอัดไลฟ์อัตโนมัติ 24 ชม. บนเซิร์ฟเวอร์ (Oracle Cloud Always Free)
 
@@ -33,3 +40,4 @@ Oracle Cloud: ต้องเปิด Ingress พอร์ต 80 และ 443 
 - โค้ด: `/opt/live-recorder`
 - ตั้งค่า: `/var/lib/live-recorder/settings.json`
 - ไลฟ์: `/var/lib/live-recorder/recordings/<ชื่อบัญชี>/<วันเวลา>/`
+- Subscriptions: `/var/lib/live-recorder/subscriptions.json`
