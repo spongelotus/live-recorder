@@ -79,6 +79,9 @@ class LiveSession(threading.Thread):
     def run(self):
         cfg = settings.load()
         log.info("@%s live (room %s) -> %s", self.user, self.live.room_id, self.folder)
+        log.info("@%s qualities offered: %s", self.user, ", ".join(
+            f'{s["quality"]}/{s["kind"]}' + (f' {s["width"]}x{s["height"]}' if s["width"] else "")
+            for s in self.live.streams))
         notify.send(f"🔴 @{self.user} ไลฟ์อยู่ — เริ่มอัดแล้ว",
                     (self.live.title or "ไม่มีชื่อไลฟ์") + f"\nเริ่ม {self.started:%H:%M} น.",
                     tags=["red_circle"], click=cfg.get("public_url") or None, priority=4)

@@ -229,14 +229,13 @@ def extract_streams(data):
             10 + s.get("_rank", 5))
         if q == "ao":
             qrank = 99  # audio only = last resort
-        return (-(s["width"] * s["height"]), -s["bitrate"], qrank, 0 if s["kind"] == "flv" else 1)
+        # "origin" = the streamer's own upload, always the best available, even when
+        # TikTok leaves out its resolution info (it often does)
+        origin = q == "origin" or "_or4" in urllib.parse.urlparse(s["url"]).path
+        return (0 if origin else 1, -(s["width"] * s["height"]), -s["bitrate"], qrank,
+                0 if s["kind"] == "flv" else 1)
 
-    # pixel count first; streams without resolution info fall back to name order
-    with_res = [s for s in found if s["width"]]
-    best_px = max((s["width"] * s["height"] for s in with_res), default=0)
     found.sort(key=score)
-    if best_px == 0:
-        found.sort(key=lambda s: (score(s)[2], score(s)[3]))
 
     seen, out = set(), []
     for s in found:
