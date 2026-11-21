@@ -42,16 +42,18 @@ def check_token(cfg, token):
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
          '<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600'
-         '&family=Geist+Mono:wght@400;500&family=Noto+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">')
+         '&family=Geist+Mono:wght@400;500&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">')
 
 # Same visual language as spongelotus.work: pure white, near-black ink, one soft blue accent,
 # Geist + Geist Mono (Thai falls back to DB Helvethaica if installed, else Noto Sans Thai).
 CSS = """
-@font-face{font-family:"SL Thai";src:local("DB Helvethaica X"),local("DBHelvethaicaX");unicode-range:U+0E00-0E7F;size-adjust:128%}
+@font-face{font-family:"SL Thai";src:local("DB Helvethaica X"),local("DBHelvethaicaX"),local("DB Helvethaica X Reg");unicode-range:U+0E00-0E7F;size-adjust:128%}
+@font-face{font-family:"SL Thai";font-weight:500 900;src:local("DB Helvethaica X Med"),local("DBHelvethaicaX-Med"),local("DB Helvethaica X");unicode-range:U+0E00-0E7F;size-adjust:128%}
 :root{--bg:#fff;--soft:#f2f4f5;--line:#e3e8eb;--ink:#1c2126;--muted:#7f8790;--accent:#7fa6bd;
---c-blue:#a9c8da;--c-dusty:#96afc0;--c-beige:#d6c8b8;--c-taupe:#a69a8c;--c-sage:#a3b8a4;--red:#d9534a;
---sans:"Geist","SL Thai","Noto Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
---mono:"Geist Mono","SL Thai","Noto Sans Thai",ui-monospace,Menlo,monospace;color-scheme:light}
+--c-blue:#a9c8da;--c-dusty:#96afc0;--c-beige:#d6c8b8;--c-taupe:#a69a8c;--c-sage:#a3b8a4;--red:#e5484d;
+--rec:#ff4f45;--subs:#2f7cf6;--likes:#8e4ff0;--set:#1c2126;--acc:var(--ink);
+--sans:"Geist","SL Thai","IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
+--mono:"Geist Mono","SL Thai","IBM Plex Sans Thai",ui-monospace,Menlo,monospace;color-scheme:light}
 *{box-sizing:border-box}html,body{margin:0;overflow-x:clip}
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
@@ -61,19 +63,20 @@ header .wrap{display:flex;justify-content:space-between;align-items:center;gap:1
 .logo::before{content:"";width:10px;height:10px;border-radius:50%;background:conic-gradient(var(--c-blue),var(--c-sage),var(--c-beige),var(--c-taupe),var(--c-dusty),var(--c-blue))}
 nav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;font-size:14px}nav::-webkit-scrollbar{display:none}
 nav a{padding:6px 12px;border-radius:999px;color:var(--muted);white-space:nowrap;transition:color .2s,background .2s}
-nav a:hover{color:var(--ink)}nav a.on{background:var(--ink);color:#fff}
+nav a:hover{color:var(--ink)}nav a.on{background:var(--acc);color:#fff}
 @media(max-width:640px){header .wrap{flex-direction:column;align-items:stretch;height:auto;padding-top:14px;padding-bottom:6px;gap:10px}nav{margin:0 -6px}}
-.hero{padding:clamp(28px,6vw,72px) 0 clamp(18px,3vw,32px);display:flex;justify-content:space-between;align-items:flex-end;gap:12px 32px;flex-wrap:wrap}
-.hero h1{margin:0;font-weight:500;font-size:clamp(44px,9vw,104px);line-height:.9;letter-spacing:-.055em}
+.hero{padding:28px 0 18px;display:flex;justify-content:space-between;align-items:baseline;gap:6px 24px;flex-wrap:wrap}
+.hero h1{margin:0;font-weight:600;font-size:24px;line-height:1.2;letter-spacing:-.02em;display:flex;align-items:center;gap:10px}
+.hero h1::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--acc)}
 .hero .sub{font-family:var(--mono);font-size:12px;color:var(--muted)}
 main{padding-bottom:96px}
 .card{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:0 0 12px}
-h2{font-family:var(--mono);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:32px 0 10px}
+h2{font-size:13px;font-weight:500;color:var(--muted);margin:28px 0 10px;letter-spacing:0}
 .card h2:first-child{margin-top:0}
 .title{font-size:17px;font-weight:500;letter-spacing:-.01em}.muted{color:var(--muted);font-size:13px}
 .mono{font-family:var(--mono)}
-.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:11px;font-family:var(--mono);
-font-weight:500;letter-spacing:.02em;background:var(--soft);color:var(--muted);vertical-align:middle;white-space:nowrap}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12px;
+font-weight:500;background:var(--soft);color:var(--muted);vertical-align:middle;white-space:nowrap}
 .pill.live{background:#fdecea;color:var(--red)}.pill.live::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--red);animation:blink 1.4s infinite}
 .pill.err{background:#fbf3e4;color:#9a6a12}.pill.mock{background:#f5efe8;color:#8a7560}.pill.ok{background:#eaf2ee;color:#4f7a60}
 .pill.blue{background:#edf3f7;color:#4d7590}
@@ -81,7 +84,7 @@ font-weight:500;letter-spacing:.02em;background:var(--soft);color:var(--muted);v
 .row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
 .row:last-child{border:0;padding-bottom:0}.row:first-child{padding-top:0}
 video{width:100%;max-height:70vh;background:#000;border-radius:10px;margin-top:10px}
-button,.btn{font:inherit;font-size:14px;background:var(--ink);color:#fff;border:1px solid var(--ink);border-radius:999px;padding:8px 18px;
+button,.btn{font:inherit;font-size:14px;background:var(--acc);color:#fff;border:1px solid var(--acc);border-radius:999px;padding:8px 18px;
 cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:opacity .2s,background .2s,border-color .2s;white-space:nowrap}
 button:hover,.btn:hover{opacity:.85}
 .btn.gray,button.gray{background:var(--bg);color:var(--ink);border-color:var(--line)}.btn.gray:hover,button.gray:hover{border-color:var(--ink);opacity:1}
@@ -90,20 +93,25 @@ button:hover,.btn:hover{opacity:.85}
 input,textarea,select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:15px;
 background:var(--bg);color:var(--ink);transition:border-color .2s}input:focus,textarea:focus,select:focus{outline:0;border-color:var(--ink)}
 input[type=checkbox]{width:auto;margin-right:8px;vertical-align:middle}
-label code{text-transform:none;font-size:11px}
-label{display:block;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:16px 0 6px}
+label code{font-size:12px}
+label{display:block;font-size:13px;font-weight:500;color:var(--muted);margin:16px 0 6px}
 pre{white-space:pre-wrap;font-family:var(--mono);font-size:12px;overflow:auto;margin:0}
 .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:16px}
 code{font-family:var(--mono);background:var(--soft);padding:2px 8px;border-radius:6px;font-size:.92em}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
 .grid .card{margin:0;display:flex;flex-direction:column;gap:6px;transition:border-color .2s}a.card:hover{border-color:var(--ink)}
-.big{font-size:40px;font-weight:500;letter-spacing:-.04em;line-height:1.05;margin:6px 0 2px}
+.big{font-size:34px;font-weight:500;letter-spacing:-.03em;line-height:1.1;margin:6px 0 2px}
+.k-rec{--acc:var(--rec)}.k-subs{--acc:var(--subs)}.k-likes{--acc:var(--likes)}.k-set{--acc:var(--set)}
+.card.k-rec,.card.k-subs,.card.k-likes{border-top:3px solid var(--acc)}
+.tag{font-size:13px;font-weight:600;color:var(--acc);display:flex;align-items:center;gap:8px;margin:0}
+.tag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--acc)}
+.grid .big{color:var(--acc)}
 .big small{font-size:14px;color:var(--muted);letter-spacing:0;font-weight:400}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
 .soon{color:var(--red)}.dim{opacity:.5}.note{background:var(--soft);border-color:var(--soft)}
 .flash{background:var(--soft);border-color:var(--soft);font-size:14px}
 ol.steps{margin:0;padding-left:20px}ol.steps li{margin:6px 0}
-.code-big{font-family:var(--mono);font-size:34px;letter-spacing:.12em;font-weight:500;margin:6px 0}
+.code-big{font-family:var(--mono);font-size:30px;color:var(--acc);letter-spacing:.12em;font-weight:500;margin:6px 0}
 details summary{cursor:pointer;color:var(--muted);font-size:14px;margin-top:8px}
 """
 
@@ -111,12 +119,15 @@ NAV = [("/", "Hub"), ("/recorder", "อัดไลฟ์"), ("/subs", "Subscrip
        ("/settings", "ตั้งค่า"), ("/log", "บันทึก"), ("/logout", "ออก")]
 
 
+SECTION = {"/": "k-set", "/recorder": "k-rec", "/subs": "k-subs", "/likes": "k-likes"}
+
+
 def page(title, body, nav=True, active="", heading=None, sub=""):
     links = "".join(f'<a href="{h}"{" class=on" if h == active else ""}>{E(t)}</a>' for h, t in NAV) if nav else ""
     hero = f'<div class="hero"><h1>{E(heading)}</h1><div class="sub">{sub}</div></div>' if heading else ""
     return (f'<!doctype html><html lang="th"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width,initial-scale=1">'
-            f'<title>{E(title)}</title>{FONTS}<style>{CSS}</style></head><body>'
+            f'<title>{E(title)}</title>{FONTS}<style>{CSS}</style></head><body class="{SECTION.get(active, "k-set")}">'
             f'<header><div class="wrap"><a class="logo" href="/">spongelotus · hub</a><nav>{links}</nav></div></header>'
             f'<main class="wrap">{hero}{body}</main></body></html>')
 
@@ -252,7 +263,7 @@ class Handler(BaseHTTPRequestHandler):
                 f'<form method="post" action="/login"><label style="margin-top:0">รหัสผ่าน</label>'
                 f'<input type="password" name="password" autofocus autocomplete="current-password">'
                 f'<div class="actions"><button>เข้าสู่ระบบ</button></div></form></div>')
-        self.send_html(page("เข้าสู่ระบบ", body, nav=False, heading="Hello."))
+        self.send_html(page("เข้าสู่ระบบ", body, nav=False, heading="เข้าสู่ระบบ"))
 
     def login_post(self):
         ip = self.client_ip()
@@ -317,7 +328,7 @@ class Handler(BaseHTTPRequestHandler):
         for r in recs:
             parts.append(self.rec_card(r))
         sub = (f'{n_live} กำลังอัด · ว่าง {du.free / (1 << 30):.1f} / {du.total / (1 << 30):.0f} GB')
-        self.send_html(page("อัดไลฟ์", "".join(parts), active="/recorder", heading="Recorder", sub=sub))
+        self.send_html(page("อัดไลฟ์", "".join(parts), active="/recorder", heading="อัดไลฟ์", sub=sub))
 
     def rec_card(self, r):
         status = r.get("status")
@@ -363,8 +374,8 @@ class Handler(BaseHTTPRequestHandler):
         rec_main = (f'<div class="big">{len(live)}<small> กำลังอัด</small></div><div>{E(", ".join(live))}</div>'
                     if live else '<div class="big">0<small> กำลังอัด</small></div>')
         err_line = f'<div class="muted soon">เช็กไม่ได้ {errs} บัญชี</div>' if errs else ""
-        rec_card = (f'<a class="card" href="/recorder"><div class="row" style="padding:0;border:0">'
-                    f'<h2 style="margin:0">Recorder</h2>{pill}</div>{rec_main}'
+        rec_card = (f'<a class="card k-rec" href="/recorder"><div class="row" style="padding:0;border:0">'
+                    f'<p class="tag">อัดไลฟ์</p>{pill}</div>{rec_main}'
                     f'<div class="muted">เฝ้า {n_acc} บัญชี · เก็บไว้ {len(list_recordings())} ไลฟ์</div>'
                     f'<div class="muted mono">disk free {du.free / (1 << 30):.1f} GB · {free_pct:.0f}%</div>{err_line}</a>')
 
@@ -379,11 +390,11 @@ class Handler(BaseHTTPRequestHandler):
         up_html = ("".join(lines) if lines else '<div class="muted">30 วันข้างหน้าไม่มีตัดบัตร</div>')
         n_cancel = sum(1 for it in data["items"] if it.get("status") == "cancelling")
         cancel = f'<span class="pill err">รอยกเลิก {n_cancel}</span>' if n_cancel else ""
-        subs_card = (f'<a class="card" href="/subs"><div class="row" style="padding:0;border:0">'
-                     f'<h2 style="margin:0">Subscriptions</h2>{cancel}</div>'
+        subs_card = (f'<a class="card k-subs" href="/subs"><div class="row" style="padding:0;border:0">'
+                     f'<p class="tag">Subscriptions</p>{cancel}</div>'
                      f'<div class="big">{subs.fmt_money(month)}<small> / เดือน</small></div>'
                      f'<div class="muted mono">≈ {subs.fmt_money(year)} / ปี</div>'
-                     f'<h2 style="margin:14px 0 4px">ตัดบัตรเร็ว ๆ นี้</h2>{up_html}</a>')
+                     f'<h2 style="margin:14px 0 2px">ตัดบัตรเร็ว ๆ นี้</h2>{up_html}</a>')
 
         ld = likes.load()
         if likes.connected(ld):
@@ -395,11 +406,11 @@ class Handler(BaseHTTPRequestHandler):
         else:
             lpill = '<span class="pill">ยังไม่เชื่อม</span>'
             likes_main = '<div class="muted" style="margin-top:6px">กดไลค์คลิป YouTube แล้วเด้งแจ้งเตือนให้แตะโพสต์ลง X — แตะเพื่อตั้งค่า</div>'
-        likes_card = (f'<a class="card" href="/likes"><div class="row" style="padding:0;border:0">'
-                      f'<h2 style="margin:0">YouTube Likes → X</h2>{lpill}</div>{likes_main}</a>')
+        likes_card = (f'<a class="card k-likes" href="/likes"><div class="row" style="padding:0;border:0">'
+                      f'<p class="tag">YouTube Likes → X</p>{lpill}</div>{likes_main}</a>')
 
         now = datetime.now(record.TZ)
-        greet = "Morning." if now.hour < 12 else "Afternoon." if now.hour < 18 else "Evening."
+        greet = "อรุณสวัสดิ์" if now.hour < 12 else "สวัสดีตอนบ่าย" if now.hour < 18 else "สวัสดีตอนเย็น"
         body = f'<div class="grid">{rec_card}{subs_card}{likes_card}</div>'
         self.send_html(page("Hub", body, active="/", heading=greet, sub=now.strftime("%a %d %b %Y · %H:%M")))
 
@@ -719,7 +730,7 @@ class Handler(BaseHTTPRequestHandler):
 <p class="muted">ใครรู้ชื่อนี้ก็เห็นแจ้งเตือนได้ อย่าแชร์ต่อ</p>
 <form method="post" action="/test-notify" class="actions"><button class="gray">ส่งแจ้งเตือนทดสอบ</button></form></div>
 """
-        self.send_html(page("ตั้งค่า", body, active="/settings", heading="Settings"))
+        self.send_html(page("ตั้งค่า", body, active="/settings", heading="ตั้งค่า"))
 
     def settings_post(self, f):
         cfg = settings.load()
@@ -773,7 +784,7 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             lines = ["(ยังไม่มีบันทึก)"]
         body = f'<div class="card"><pre>{E(chr(10).join(reversed(lines)))}</pre></div>'
-        self.send_html(page("บันทึกระบบ", '<h2>ล่าสุดอยู่บน</h2>' + body, active="/log", heading="Log"))
+        self.send_html(page("บันทึกระบบ", '<h2>ล่าสุดอยู่บน</h2>' + body, active="/log", heading="บันทึกระบบ"))
 
     # ---------- files with Range support (needed for video seeking on phones) ----------
     def serve_file(self, rel):
