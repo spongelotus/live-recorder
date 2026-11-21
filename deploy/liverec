@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Helper: sudo liverec info | log | restart | update | newpassword
+S=/var/lib/live-recorder/settings.json
+get() { python3 -c "import json,sys;print(json.load(open('$S')).get(sys.argv[1],''))" "$1"; }
+case "${1:-info}" in
+  info)
+    echo "--------------------------------------------"
+    echo " หน้าเว็บ      : $(get public_url)"
+    echo " รหัสผ่าน      : $(get web_password)"
+    echo " ntfy topic   : $(get ntfy_topic)"
+    echo " สถานะระบบ     : $(systemctl is-active live-recorder)"
+    echo "--------------------------------------------"
+    echo " ดูอีกครั้งได้ด้วยคำสั่ง: sudo liverec info" ;;
+  log) journalctl -u live-recorder -n "${2:-80}" --no-pager ;;
+  restart) systemctl restart live-recorder && echo "รีสตาร์ตแล้ว" ;;
+  update) /opt/live-recorder/deploy/update.sh; echo "เช็กอัปเดตแล้ว (ถ้ามีของใหม่ ระบบจะรีสตาร์ตเองตอนไม่ได้อัดอยู่)" ;;
+  newpassword)
+    pw=$(python3 -c "import secrets;a='abcdefghjkmnpqrstuvwxyz23456789';print('-'.join(''.join(secrets.choice(a) for _ in range(4)) for _ in range(3)))")
+    python3 - "$pw" <<PY
+import json,sys
+p="$S";d=json.load(open(p));d["web_password"]=sys.argv[1];json.dump(d,open(p,"w"),ensure_ascii=False,indent=2)
+PY
+    echo "รหัสผ่านใหม่: $pw" ;;
+  *) echo "ใช้: sudo liverec [info|log|restart|update|newpassword]" ;;
+esac

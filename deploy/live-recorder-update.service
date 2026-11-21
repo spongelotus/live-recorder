@@ -1,0 +1,7 @@
+[Unit]
+Description=Update TikTok Live Recorder from GitHub
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/live-recorder/deploy/update.sh

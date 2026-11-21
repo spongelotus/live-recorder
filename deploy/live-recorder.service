@@ -1,0 +1,19 @@
+[Unit]
+Description=TikTok Live Recorder
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=liverec
+Group=liverec
+WorkingDirectory=/opt/live-recorder
+Environment=TKREC_DATA=/var/lib/live-recorder
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -m recorder.main
+Restart=always
+RestartSec=5
+KillMode=mixed
+TimeoutStopSec=900
+
+[Install]
+WantedBy=multi-user.target
