@@ -83,18 +83,18 @@ a{color:inherit;text-decoration:none}:focus-visible{outline:2px solid var(--ink)
 }
 
 /* page title */
-.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:8px 20px;flex-wrap:wrap;padding-top:22px;padding-bottom:16px}
-.hero h1{margin:0;font-size:30px;font-weight:600;letter-spacing:-.03em;line-height:1.15}
+.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:8px 20px;flex-wrap:wrap;padding-top:14px;padding-bottom:8px}
+.hero h1{margin:0;font-size:26px;font-weight:600;letter-spacing:-.03em;line-height:1.15}
 .hero .sub{font-size:13px;color:var(--ink2);background:var(--card);padding:6px 14px;border-radius:999px}
-main.wrap{padding-top:14px;padding-bottom:80px}
+main.wrap{padding-top:8px;padding-bottom:80px}
 
 /* cards */
-.card{background:var(--card);border-radius:26px;padding:20px 22px;margin:0 0 12px}
+.card{background:var(--card);border-radius:22px;padding:14px 16px;margin:0 0 10px}
 .card.dark{background:var(--dark);color:#fff}.card.dark .muted{color:#a9a9a4}
 .card.tint{background:var(--acc);color:var(--acc-ink)}
-h2{font-size:15px;font-weight:600;color:var(--ink);margin:26px 4px 10px;letter-spacing:-.01em}
+h2{font-size:14px;font-weight:600;color:var(--ink);margin:18px 4px 8px;letter-spacing:-.01em}
 .card h2{margin:0 0 10px}
-.title{font-size:16px;font-weight:500;letter-spacing:-.01em}
+.title{font-size:15px;font-weight:500;letter-spacing:-.01em}
 .muted{color:var(--muted);font-size:13px}.mono{font-family:var(--mono)}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;font-size:12px;font-weight:500;
 background:var(--soft2);color:var(--ink2);vertical-align:middle;white-space:nowrap}
@@ -103,7 +103,7 @@ background:var(--soft2);color:var(--ink2);vertical-align:middle;white-space:nowr
 .pill.acc{background:var(--acc);color:var(--acc-ink)}
 @keyframes blink{50%{opacity:.25}}
 /* lists: each row is its own soft rounded block */
-.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 16px;background:var(--soft);border-radius:18px;margin-top:8px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 12px;background:var(--soft);border-radius:14px;margin-top:6px}
 .row:first-child{margin-top:0}.card>.row:only-child{margin:0}
 .row.plain{background:none;padding:0;border-radius:0;margin:0}
 video{width:100%;max-height:70vh;background:#000;border-radius:18px;margin-top:10px}
@@ -114,22 +114,43 @@ button:hover,.btn:hover{opacity:.88}button:active,.btn:active{transform:scale(.9
 .btn.acc,button.acc{background:var(--acc);color:var(--acc-ink)}
 .btn.red,button.red{background:#ffe0d8;color:#b2321d}
 .btn.sm,button.sm{padding:7px 14px;font-size:13px}
-input,textarea,select{width:100%;padding:12px 14px;border:0;border-radius:14px;font:inherit;font-size:15px;background:var(--soft);color:var(--ink);
+input,textarea,select{width:100%;padding:10px 12px;border:0;border-radius:14px;font:inherit;font-size:15px;background:var(--soft);color:var(--ink);
 outline:2px solid transparent;transition:outline-color .2s,background .2s}
 input:focus,textarea:focus,select:focus{outline-color:var(--ink);background:#fff}
 input[type=checkbox]{width:18px;height:18px;margin:0 8px 0 0;vertical-align:-3px;accent-color:var(--dark)}
-label{display:block;font-size:13px;font-weight:500;color:var(--ink2);margin:16px 2px 6px}
+label{display:block;font-size:13px;font-weight:500;color:var(--ink2);margin:12px 2px 5px}
 label code{font-size:12px}
 pre{white-space:pre-wrap;font-family:var(--mono);font-size:12px;overflow:auto;margin:0;line-height:1.6}
-.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:16px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
 code{font-family:var(--mono);background:var(--soft2);padding:2px 8px;border-radius:8px;font-size:.92em}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
 .soon{color:#c2361d;font-weight:500}.dim{opacity:.5}
 .note{background:var(--acc);color:var(--acc-ink)}.note .muted{color:inherit;opacity:.8}
-.flash{background:var(--dark);color:#fff;font-size:14px;border-radius:999px;padding:12px 20px;margin:0 0 12px}
+.flash{background:var(--dark);color:#fff;font-size:14px;border-radius:999px;padding:9px 18px;margin:0 0 10px}
 ol.steps{margin:0;padding-left:20px}ol.steps li{margin:8px 0}
 .code-big{font-family:var(--mono);font-size:32px;letter-spacing:.14em;font-weight:500;margin:8px 0;background:var(--acc);color:var(--acc-ink);display:inline-block;padding:8px 20px;border-radius:18px}
 details summary{cursor:pointer;color:var(--ink2);font-size:14px;margin-top:10px}
+/* compact lists: rows separated by hairlines instead of separate blocks */
+.card.list{padding:2px 16px}
+.card.list>.row{background:none;border-radius:0;padding:10px 0;margin:0;border-top:1px solid var(--line)}
+.card.list>.row:first-child{border-top:0}
+.card.list>a.row{margin:0 -16px;padding:10px 16px}.card.list>a.row:hover{background:var(--soft)}
+.card.list>a.row:first-child{border-radius:20px 20px 0 0}.card.list>a.row:last-child{border-radius:0 0 20px 20px}
+.card.list>a.row:only-child{border-radius:20px}
+.line2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .pill{padding:2px 9px;font-size:11px}
+.price{font-family:var(--mono);font-size:14px;font-weight:500;text-align:right;flex:none}
+.price small{display:block;font-size:12px;font-weight:400;color:var(--muted)}
+.bar .btn,.bar button{background:var(--card);color:var(--ink)}
+/* collapsible sections */
+details.fold{margin:18px 0 0}details.fold>summary{list-style:none;font-size:14px;font-weight:600;color:var(--ink);margin:0 4px 8px;display:flex;align-items:center;gap:6px}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary::before{content:"›";display:inline-block;transition:transform .2s;color:var(--muted);font-size:18px;line-height:1}
+details.fold[open]>summary::before{transform:rotate(90deg)}
+/* one-line summary strip */
+.sumline{display:flex;align-items:baseline;gap:6px 22px;flex-wrap:wrap}
+.sumline b{font-size:28px;font-weight:300;letter-spacing:-.03em}.sumline b small{font-size:13px;color:#a9a9a4;font-weight:400;margin-left:4px;letter-spacing:0}
+.sumline .muted{margin-left:auto}
 
 /* hub bento */
 .bento{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
@@ -433,12 +454,12 @@ class Handler(BaseHTTPRequestHandler):
             rows.append(f'<div class="row"><div><span class="title">@{E(user)}</span>{tag}'
                         f'<div class="muted mono">เช็กล่าสุด {checked}</div>{err}</div>{pill}</div>')
         if not rows:
-            rows.append('<p class="muted" style="margin:0">ยังไม่มีบัญชีที่เฝ้า — <a href="/recorder/settings"><u>เพิ่มในหน้าตั้งค่า</u></a></p>')
+            rows.append('<p class="muted" style="margin:10px 0">ยังไม่มีบัญชีที่เฝ้า — <a href="/recorder/settings"><u>เพิ่มในหน้าตั้งค่า</u></a></p>')
         du = shutil.disk_usage(settings.DATA_DIR)
         parts.append(f'<h2>บัญชีที่เฝ้า · TikTok ทุก {cfg["check_interval"]} วิ · IG ทุก {cfg["ig_check_interval"]} วิ</h2>'
-                     f'<div class="card">{"".join(rows)}<div class="actions">'
+                     f'<div class="card list">{"".join(rows)}</div><div class="actions bar" style="margin:0 0 10px">'
                      f'<form method="post" action="/check-now"><button class="gray sm">เช็กเดี๋ยวนี้</button></form>'
-                     f'<a class="btn gray sm" href="/recorder/settings">ตั้งค่า · เพิ่มบัญชี</a></div></div>')
+                     f'<a class="btn gray sm" href="/recorder/settings">ตั้งค่า · เพิ่มบัญชี</a></div>')
         recs = list_recordings()
         parts.append(f"<h2>ไลฟ์ที่อัดไว้ · {len(recs)}</h2>")
         if not recs:
@@ -551,31 +572,34 @@ class Handler(BaseHTTPRequestHandler):
         rate = float(data.get("usd_rate") or 33)
         month, year = subs.totals(data)
         parts = [self.flash({"saved": "บันทึกแล้ว", "deleted": "ลบแล้ว"})]
-        parts.append(f'<div class="card dark"><div class="two"><div><div class="muted">ต่อเดือน</div>'
-                     f'<div class="big">{subs.fmt_money(month)}</div></div><div><div class="muted">ต่อปี</div>'
-                     f'<div class="big">{subs.fmt_money(year)}</div></div></div>'
-                     f'<div class="muted" style="margin-top:8px">นับเฉพาะรายเดือน/รายปีที่ยังไม่ยกเลิก · '
-                     f'<span class="mono">1 USD = {rate:g} THB</span></div></div>')
+        parts.append(f'<div class="card dark sumline"><b>{subs.fmt_money(month)}<small>/ เดือน</small></b>'
+                     f'<b>{subs.fmt_money(year)}<small>/ ปี</small></b>'
+                     f'<span class="muted mono" title="นับเฉพาะรายเดือน/รายปีที่ยังไม่ยกเลิก">1 USD = {rate:g} THB</span></div>')
         if any(it.get("mock") for it in data["items"]):
-            parts.append('<div class="card note muted">รายการที่มีป้าย <span class="pill mock">ตัวอย่าง</span> '
-                         'ราคา/วันที่ยังไม่ใช่ของจริง — กด "แก้" แล้วใส่ข้อมูลจริง ป้ายจะหายไปเอง</div>')
+            parts.append('<div class="card note muted" style="padding:9px 16px">ป้าย <span class="pill mock">ตัวอย่าง</span> '
+                         '= ราคา/วันที่ยังไม่จริง แตะรายการเพื่อแก้</div>')
         for status in ("cancelling", "active", "cancelled"):
             group = [it for it in data["items"] if it.get("status") == status]
             if not group:
                 continue
             group.sort(key=lambda it: (subs.days_left(it) if subs.days_left(it) is not None else 9999, it.get("name", "")))
             rows = "".join(self.sub_row(it, rate, data) for it in group)
-            parts.append(f'<h2>{subs.STATUSES[status]} · {len(group)}</h2><div class="card">{rows}</div>')
+            block = f'<div class="card list">{rows}</div>'
+            if status == "cancelled":
+                parts.append(f'<details class="fold"><summary>{subs.STATUSES[status]} · {len(group)}</summary>{block}</details>')
+            else:
+                parts.append(f'<h2>{subs.STATUSES[status]} · {len(group)}</h2>{block}')
         editing = next((it for it in data["items"] if it["id"] == edit_id), None)
-        parts.append(f'<h2 id="form">{"แก้ไข · " + E(editing["name"]) if editing else "เพิ่มรายการ"}</h2>')
-        parts.append(self.sub_form(editing))
-        parts.append(f'''<h2>ตั้งค่า</h2><form method="post" action="/subs/options" class="card">
+        title = "แก้ไข · " + E(editing["name"]) if editing else "+ เพิ่มรายการ"
+        parts.append(f'<details class="fold" id="form"{" open" if editing else ""}><summary>{title}</summary>'
+                     f'{self.sub_form(editing)}</details>')
+        parts.append(f'''<details class="fold"><summary>ตั้งค่า</summary><form method="post" action="/subs/options" class="card">
 <div class="two"><div><label style="margin-top:0">เรต USD → บาท</label><input name="usd_rate" type="number" step="0.01" min="1" value="{rate:g}"></div>
 <div><label style="margin-top:0">เตือนก่อนตัดบัตร (วัน)</label><input name="remind_days" type="number" min="0" max="30"
  value="{int(data.get("remind_days") or 3)}"></div></div>
 <div class="actions"><button>บันทึก</button></div>
 <p class="muted" style="margin:14px 0 0">แจ้งเตือนส่งผ่าน ntfy ตัวเดียวกับระบบอัดไลฟ์ · เลยวันต่ออายุแล้ว ระบบเลื่อนไปรอบถัดไปให้เอง
-(เฉพาะ "ใช้อยู่")</p></form>''')
+(เฉพาะ "ใช้อยู่")</p></form></details>''')
         n = sum(1 for it in data["items"] if it.get("status") != "cancelled")
         self.send_html(page("Subscriptions", "".join(parts), active="/subs", heading="Subscriptions",
                             sub=f"{n} รายการ"))
@@ -599,17 +623,17 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 soon = n <= int(data.get("remind_days") or 3)
                 txt = "ต่ออายุวันนี้" if n == 0 else f"อีก {n} วัน"
-                when = f' · <span class="{"soon" if soon else ""}">{txt}</span> <span class="mono">{E(it["next"])}</span>'
+                when = f' · <span class="{"soon" if soon else ""}">{txt}</span>'
         tags = ' <span class="pill mock">ตัวอย่าง</span>' if it.get("mock") else ""
         if it.get("category"):
             tags += f' <span class="pill">{E(it["category"])}</span>'
-        note = f'<div class="muted">{E(it["note"])}</div>' if it.get("note") else ""
+        note = f' · {E(it["note"])}' if it.get("note") else ""
         dim = " dim" if it.get("status") == "cancelled" else ""
-        return (f'<div class="row{dim}" style="align-items:flex-start"><div style="min-width:0">'
+        date = f'<small>{E(it["next"])}</small>' if it.get("next") and it.get("status") != "cancelled" else ""
+        return (f'<a class="row{dim}" href="/subs?edit={E(it["id"])}#form" title="แตะเพื่อแก้"><div style="min-width:0">'
                 f'<span class="title">{E(it["name"])}</span>{tags}'
-                f'<div class="muted">{per}{when}</div>{note}</div>'
-                f'<div style="text-align:right;flex:none"><div class="title mono" style="font-size:15px">{price}</div>'
-                f'<a class="btn gray sm" style="margin-top:6px" href="/subs?edit={E(it["id"])}#form">แก้</a></div></div>')
+                f'<div class="muted line2">{per}{when}{note}</div></div>'
+                f'<div class="price">{price}{date}</div></a>')
 
     def sub_form(self, it):
         it = it or {"id": "", "name": "", "price": "", "currency": "THB", "cycle": "monthly",
@@ -702,20 +726,20 @@ class Handler(BaseHTTPRequestHandler):
             rest = [it for it in d["items"] if it.get("status") != "pending"][:30]
             parts.append(f'<h2>รอโพสต์ · {len(pend)}</h2>')
             if pend:
-                parts.append('<div class="card">' + "".join(self.like_row(d, it) for it in pend) + '</div>')
+                parts.append('<div class="card list">' + "".join(self.like_row(d, it) for it in pend) + '</div>')
             else:
                 parts.append('<div class="card note muted">ไม่มีคลิปค้างโพสต์ — กดไลค์คลิปใหม่บน YouTube แล้วจะเด้งแจ้งเตือนใน ntfy '
                              '(ภายใน ~{} นาที)</div>'.format(int(d.get("interval_min") or 10)))
             if rest:
-                parts.append(f'<h2>ก่อนหน้านี้</h2><div class="card">' + "".join(self.like_row(d, it) for it in rest) + '</div>')
-            parts.append(f'''<h2>ตั้งค่า</h2><form method="post" action="/likes/options" class="card">
+                parts.append(f'<details class="fold"><summary>ก่อนหน้านี้ · {len(rest)}</summary><div class="card list">' + "".join(self.like_row(d, it) for it in rest) + '</div></details>')
+            parts.append(f'''<details class="fold"><summary>ตั้งค่า</summary><form method="post" action="/likes/options" class="card">
 <label style="margin-top:0"><input type="checkbox" name="enabled" value="1"{" checked" if d.get("enabled") else ""}>เปิดใช้งาน</label>
 <label>เช็กทุกกี่นาที (ต่ำสุด 5)</label><input name="interval_min" type="number" min="5" value="{int(d.get("interval_min") or 10)}">
 <label>ข้อความทวีต · ใช้ <code>{{title}}</code> แทนชื่อคลิป, <code>{{channel}}</code> แทนชื่อช่อง · ลิงก์คลิปต่อท้ายให้เอง</label>
 <input name="template" value="{E(d.get("template") or likes.DEFAULT_TEMPLATE)}">
 <div class="actions"><button>บันทึก</button></div></form>
 <form method="post" action="/likes/disconnect" onsubmit="return confirm('ยกเลิกการเชื่อม YouTube?')" class="actions">
-<button class="red sm">ยกเลิกการเชื่อม YouTube</button></form>''')
+<button class="red sm">ยกเลิกการเชื่อม YouTube</button></form></details>''')
         elif dev.get("user_code") and not dev.get("error"):
             refresh = '<meta http-equiv="refresh" content="5">'
             parts.append(f'''<div class="card"><h2>ขั้นสุดท้าย · ยืนยันกับ Google</h2>
