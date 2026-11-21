@@ -170,7 +170,7 @@ def icon(name):
 
 
 NAV = [("/", "Hub", "home"), ("/recorder", "อัดไลฟ์", "rec"), ("/subs", "Subscriptions", "card"),
-       ("/likes", "Likes", "heart"), ("/settings", "ตั้งค่า", "gear")]
+       ("/likes", "Likes", "heart")]
 SECTION = {"/recorder": "k-rec", "/subs": "k-subs", "/likes": "k-likes"}
 
 
@@ -182,7 +182,8 @@ def page(title, body, nav=True, active="", heading=None, sub=""):
         dock = "".join(f'<a href="{h}" aria-label="{E(t)}"{" class=on" if h == active else ""}>{icon(i)}</a>'
                        for h, t, i in NAV)
         dock = f'<nav class="dock">{dock}</nav>'
-        tools = (f'<div class="tools"><a class="ibtn" href="/log" title="บันทึกระบบ">{icon("log")}</a>'
+        tools = (f'<div class="tools"><a class="ibtn" href="/settings" title="ตั้งค่าระบบ">{icon("gear")}</a>'
+                 f'<a class="ibtn" href="/log" title="บันทึกระบบ">{icon("log")}</a>'
                  f'<a class="ibtn" href="/logout" title="ออกจากระบบ">{icon("out")}</a></div>')
     now = datetime.now(record.TZ)
     hero = (f'<div class="wrap hero"><h1>{E(heading)}</h1>{f"<div class=sub>{sub}</div>" if sub else ""}</div>'
@@ -284,6 +285,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.likes_page()
         if path == "/likes/go":
             return self.likes_go()
+        if path == "/recorder/settings":
+            return self.rec_settings_page()
         if path == "/settings":
             return self.settings_page()
         if path == "/log":
@@ -304,6 +307,8 @@ class Handler(BaseHTTPRequestHandler):
         if not self.authed():
             return self.redirect("/login")
         f = self.form()
+        if path == "/recorder/settings":
+            return self.rec_settings_post(f)
         if path == "/settings":
             return self.settings_post(f)
         if path == "/delete":
@@ -428,11 +433,12 @@ class Handler(BaseHTTPRequestHandler):
             rows.append(f'<div class="row"><div><span class="title">@{E(user)}</span>{tag}'
                         f'<div class="muted mono">เช็กล่าสุด {checked}</div>{err}</div>{pill}</div>')
         if not rows:
-            rows.append('<p class="muted" style="margin:0">ยังไม่มีบัญชีที่เฝ้า — <a href="/settings"><u>เพิ่มในหน้าตั้งค่า</u></a></p>')
+            rows.append('<p class="muted" style="margin:0">ยังไม่มีบัญชีที่เฝ้า — <a href="/recorder/settings"><u>เพิ่มในหน้าตั้งค่า</u></a></p>')
         du = shutil.disk_usage(settings.DATA_DIR)
         parts.append(f'<h2>บัญชีที่เฝ้า · TikTok ทุก {cfg["check_interval"]} วิ · IG ทุก {cfg["ig_check_interval"]} วิ</h2>'
-                     f'<div class="card">{"".join(rows)}<form method="post" action="/check-now" class="actions">'
-                     f'<button class="gray sm">เช็กเดี๋ยวนี้</button></form></div>')
+                     f'<div class="card">{"".join(rows)}<div class="actions">'
+                     f'<form method="post" action="/check-now"><button class="gray sm">เช็กเดี๋ยวนี้</button></form>'
+                     f'<a class="btn gray sm" href="/recorder/settings">ตั้งค่า · เพิ่มบัญชี</a></div></div>')
         recs = list_recordings()
         parts.append(f"<h2>ไลฟ์ที่อัดไว้ · {len(recs)}</h2>")
         if not recs:
@@ -829,16 +835,15 @@ class Handler(BaseHTTPRequestHandler):
             return self.redirect("/likes")
         self.send_html("not found", 404)
 
-    def settings_page(self):
+    def settings_msg(self):
+        return self.flash({"saved": "บันทึกแล้ว ✅", "sent": "ส่งแจ้งเตือนทดสอบแล้ว — ดูในแอป ntfy",
+                           "fail": "ส่งแจ้งเตือนไม่สำเร็จ", "pw": "รหัสผ่านใหม่ต้องยาวอย่างน้อย 8 ตัว"})
+
+    # ---------- recorder settings (/recorder/settings) ----------
+    def rec_settings_page(self):
         cfg = settings.load()
-        q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-        msg = {"saved": "บันทึกแล้ว ✅", "sent": "ส่งแจ้งเตือนทดสอบแล้ว — ดูในแอป ntfy",
-               "fail": "ส่งแจ้งเตือนไม่สำเร็จ", "pw": "รหัสผ่านใหม่ต้องยาวอย่างน้อย 8 ตัว"}.get(
-            (q.get("msg") or [""])[0], "")
-        msghtml = f'<div class="flash">{E(msg)}</div>' if msg else ""
-        topic = cfg.get("ntfy_topic", "")
-        body = f"""{msghtml}
-<h2>อัดไลฟ์</h2><form method="post" action="/settings" class="card">
+        body = f"""{self.settings_msg()}
+<h2>บัญชีที่เฝ้า · การอัด</h2><form method="post" action="/recorder/settings" class="card">
 <label style="margin-top:0">บัญชี TikTok ที่จะเฝ้า (บรรทัดละ 1 ชื่อ จะมี @ หรือวางลิงก์โปรไฟล์ก็ได้)</label>
 <textarea name="accounts" rows="6" placeholder="เช่น&#10;@username1&#10;username2">{E(chr(10).join(cfg["accounts"]))}</textarea>
 <label>เช็กทุกกี่วินาที (ต่ำสุด 20 · แนะนำ 60)</label>
@@ -855,17 +860,11 @@ class Handler(BaseHTTPRequestHandler):
 <input name="ig_check_interval" type="number" min="45" value="{cfg["ig_check_interval"]}">
 <label>คุกกี้ TikTok (ไม่บังคับ — ใส่เมื่อเช็กไม่ได้หรือเจอไลฟ์ 18+)</label>
 <textarea name="cookies" rows="3" placeholder="sessionid=...; tt-target-idc=...">{E(cfg.get("cookies", ""))}</textarea>
-<label>เปลี่ยนรหัสผ่านหน้าเว็บ (เว้นว่าง = ใช้รหัสเดิม)</label>
-<input name="new_password" type="password" autocomplete="new-password">
-<div class="actions"><button>บันทึก</button></div></form>
-<h2>แจ้งเตือน · ntfy</h2><div class="card">
-<p style="margin-top:0">ในแอป ntfy กด <b>+</b> แล้วใส่ชื่อ topic นี้</p><p><code style="font-size:16px">{E(topic)}</code></p>
-<p class="muted">ใครรู้ชื่อนี้ก็เห็นแจ้งเตือนได้ อย่าแชร์ต่อ</p>
-<form method="post" action="/test-notify" class="actions"><button class="gray">ส่งแจ้งเตือนทดสอบ</button></form></div>
+<div class="actions"><button>บันทึก</button><a class="btn gray" href="/recorder">กลับหน้าอัดไลฟ์</a></div></form>
 """
-        self.send_html(page("ตั้งค่า", body, active="/settings", heading="ตั้งค่า"))
+        self.send_html(page("ตั้งค่าอัดไลฟ์", body, active="/recorder", heading="ตั้งค่าอัดไลฟ์"))
 
-    def settings_post(self, f):
+    def rec_settings_post(self, f):
         cfg = settings.load()
         accounts = []
         for line in f.get("accounts", "").replace(",", "\n").splitlines():
@@ -877,7 +876,7 @@ class Handler(BaseHTTPRequestHandler):
             u = settings.clean_username(line)
             if u and u not in ig_accounts:
                 ig_accounts.append(u)
-        changes = {
+        cfg.update({
             "accounts": accounts,
             "ig_accounts": ig_accounts,
             "ig_cookies": f.get("ig_cookies", "").strip(),
@@ -886,18 +885,40 @@ class Handler(BaseHTTPRequestHandler):
             "retention_days": max(0, int(f.get("retention_days") or 0)),
             "min_free_gb": max(0, float(f.get("min_free_gb") or 0)),
             "cookies": f.get("cookies", "").strip(),
-        }
-        headers = None
-        new_pw = f.get("new_password", "")
-        if new_pw:
-            if len(new_pw) < 8:
-                return self.redirect("/settings?msg=pw")
-            changes["web_password"] = new_pw
-        cfg.update(changes)
+        })
         settings.save(cfg)
-        if new_pw:  # old sessions become invalid; give this browser a fresh one
-            headers = {"Set-Cookie": f"tkrec={make_token(cfg)}; Max-Age={SESSION_DAYS * 86400}; Path=/; "
-                                     f"HttpOnly; SameSite=Lax"}
+        self.redirect("/recorder/settings?msg=saved")
+
+    # ---------- hub-wide settings (/settings): password + ntfy ----------
+    def settings_page(self):
+        cfg = settings.load()
+        topic = cfg.get("ntfy_topic", "")
+        body = f"""{self.settings_msg()}
+<h2>รหัสผ่านหน้าเว็บ</h2><form method="post" action="/settings" class="card">
+<label style="margin-top:0">รหัสผ่านใหม่ (อย่างน้อย 8 ตัว) · ใช้เข้าทุกส่วนของ Hub</label>
+<input name="new_password" type="password" autocomplete="new-password">
+<div class="actions"><button>เปลี่ยนรหัสผ่าน</button></div></form>
+<h2>แจ้งเตือน · ntfy</h2><div class="card">
+<p style="margin-top:0">ในแอป ntfy กด <b>+</b> แล้วใส่ชื่อ topic นี้ · ใช้ร่วมกันทั้งอัดไลฟ์ Subscriptions และ Likes</p>
+<p><code style="font-size:16px">{E(topic)}</code></p>
+<p class="muted">ใครรู้ชื่อนี้ก็เห็นแจ้งเตือนได้ อย่าแชร์ต่อ</p>
+<form method="post" action="/test-notify" class="actions"><button class="gray">ส่งแจ้งเตือนทดสอบ</button></form></div>
+<h2>ตั้งค่าแต่ละส่วน</h2><div class="card">
+<div class="actions" style="margin-top:0"><a class="btn gray" href="/recorder/settings">อัดไลฟ์</a>
+<a class="btn gray" href="/subs">Subscriptions</a><a class="btn gray" href="/likes">Likes</a></div></div>
+"""
+        self.send_html(page("ตั้งค่าระบบ", body, active="/settings", heading="ตั้งค่าระบบ"))
+
+    def settings_post(self, f):
+        cfg = settings.load()
+        new_pw = f.get("new_password", "")
+        if len(new_pw) < 8:
+            return self.redirect("/settings?msg=pw")
+        cfg["web_password"] = new_pw
+        settings.save(cfg)
+        # old sessions become invalid; give this browser a fresh one
+        headers = {"Set-Cookie": f"tkrec={make_token(cfg)}; Max-Age={SESSION_DAYS * 86400}; Path=/; "
+                                 f"HttpOnly; SameSite=Lax"}
         self.redirect("/settings?msg=saved", headers)
 
     def delete_post(self, f):
