@@ -1,10 +1,10 @@
 [Unit]
-Description=Check for TikTok Live Recorder updates
+Description=Check for Live Recorder updates
 
 [Timer]
-OnBootSec=10min
-OnUnitActiveSec=3h
-RandomizedDelaySec=10min
+OnBootSec=2min
+OnUnitActiveSec=5min
+RandomizedDelaySec=30s
 
 [Install]
 WantedBy=timers.target

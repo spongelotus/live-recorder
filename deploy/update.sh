@@ -16,6 +16,7 @@ if [ "$old" != "$new" ]; then
   install -m 755 deploy/liverec /usr/local/bin/liverec
   chmod +x deploy/update.sh
   systemctl daemon-reload
+  systemctl restart live-recorder-update.timer || true
   if systemctl is-active -q live-recorder; then
     touch "$DATA/restart-pending" && chown liverec:liverec "$DATA/restart-pending"
   else
