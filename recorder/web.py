@@ -42,18 +42,16 @@ def check_token(cfg, token):
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
          '<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600'
-         '&family=Geist+Mono:wght@400;500&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">')
+         '&family=Geist+Mono:wght@400;500&family=Anuphan:wght@400;500;600&display=swap" rel="stylesheet">')
 
 # Same visual language as spongelotus.work: pure white, near-black ink, one soft blue accent,
 # Geist + Geist Mono (Thai falls back to DB Helvethaica if installed, else Noto Sans Thai).
 CSS = """
-@font-face{font-family:"SL Thai";src:local("DB Helvethaica X"),local("DBHelvethaicaX"),local("DB Helvethaica X Reg");unicode-range:U+0E00-0E7F;size-adjust:128%}
-@font-face{font-family:"SL Thai";font-weight:500 900;src:local("DB Helvethaica X Med"),local("DBHelvethaicaX-Med"),local("DB Helvethaica X");unicode-range:U+0E00-0E7F;size-adjust:128%}
 :root{--bg:#fff;--soft:#f2f4f5;--line:#e3e8eb;--ink:#1c2126;--muted:#7f8790;--accent:#7fa6bd;
 --c-blue:#a9c8da;--c-dusty:#96afc0;--c-beige:#d6c8b8;--c-taupe:#a69a8c;--c-sage:#a3b8a4;--red:#e5484d;
 --rec:#ff4f45;--subs:#2f7cf6;--likes:#8e4ff0;--set:#1c2126;--acc:var(--ink);
---sans:"Geist","SL Thai","IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
---mono:"Geist Mono","SL Thai","IBM Plex Sans Thai",ui-monospace,Menlo,monospace;color-scheme:light}
+--sans:"Geist","Anuphan",system-ui,-apple-system,"Segoe UI",sans-serif;
+--mono:"Geist Mono","Anuphan",ui-monospace,Menlo,monospace;color-scheme:light}
 *{box-sizing:border-box}html,body{margin:0;overflow-x:clip}
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
