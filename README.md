@@ -4,6 +4,7 @@
 
 - `/recorder` อัดไลฟ์ TikTok + Instagram
 - `/subs` รวม subscription ที่จ่ายอยู่ ยอดรวมต่อเดือน/ปี และแจ้งเตือนผ่าน ntfy ก่อนตัดบัตร
+- `/likes` กดไลค์คลิป YouTube → ntfy เด้ง → แตะแล้วโพสต์ลง X (แทน IFTTT, ฟรี)
 
 ## Live Recorder
 
@@ -41,3 +42,4 @@ Oracle Cloud: ต้องเปิด Ingress พอร์ต 80 และ 443 
 - ตั้งค่า: `/var/lib/live-recorder/settings.json`
 - ไลฟ์: `/var/lib/live-recorder/recordings/<ชื่อบัญชี>/<วันเวลา>/`
 - Subscriptions: `/var/lib/live-recorder/subscriptions.json`
+- Likes: `/var/lib/live-recorder/likes.json`

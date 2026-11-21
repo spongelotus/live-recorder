@@ -7,7 +7,7 @@ import threading
 import time
 from datetime import datetime
 
-from . import notify, record, settings, subs, web
+from . import likes, notify, record, settings, subs, web
 from .instagram import Instagram
 from .tiktok import Blocked, TikTok, TikTokError
 
@@ -149,6 +149,7 @@ def main():
     port = int(os.environ.get("TKREC_PORT", "8080"))
     host = os.environ.get("TKREC_HOST", "127.0.0.1")
     threading.Thread(target=web.serve, args=(mgr, host, port), daemon=True, name="web").start()
+    threading.Thread(target=likes.run_forever, daemon=True, name="likes").start()
     log.info("started; TikTok %s, IG %s", settings.load()["accounts"], settings.load()["ig_accounts"])
     mgr.run()
 

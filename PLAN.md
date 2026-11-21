@@ -15,7 +15,7 @@ https://<ip>.sslip.io  (Caddy ทำ https → 127.0.0.1:8080)
   /subs       Subscription tracker
   /settings   ตั้งค่า recorder + รหัสผ่าน + ntfy
   /log        บันทึกระบบ
-  /likes      (ยังไม่ทำ) YouTube like → ntfy → กดโพสต์ X เอง
+  /likes      YouTube like → ntfy → แตะแล้วโพสต์ X เอง (ฟรี ไม่ใช้ X API)
 ```
 
 ## โค้ด
@@ -24,6 +24,7 @@ https://<ip>.sslip.io  (Caddy ทำ https → 127.0.0.1:8080)
 | `recorder/main.py` | ลูปหลัก: เช็กไลฟ์, cleanup ทุกชม., เตือน subscription ทุกชม., self-restart หลังอัปเดต |
 | `recorder/web.py` | หน้าเว็บทั้งหมด + login (cookie `tkrec`, 30 วัน) |
 | `recorder/subs.py` | ข้อมูล subscription, ยอดรวม, เลื่อนวันต่ออายุ, ส่งเตือน |
+| `recorder/likes.py` | เชื่อม YouTube (OAuth device flow), เช็กเพลย์ลิสต์ LL ทุก N นาทีใน thread แยก, ส่ง ntfy พร้อมลิงก์ x.com/intent/post |
 | `recorder/tiktok.py` / `instagram.py` / `record.py` | ตรวจไลฟ์และอัด |
 | `recorder/notify.py` | ส่ง ntfy |
 | `deploy/` | systemd services, ตัวอัปเดตอัตโนมัติ (ดึง GitHub ทุก 3 ชม.), คำสั่ง `liverec` |
@@ -32,6 +33,7 @@ https://<ip>.sslip.io  (Caddy ทำ https → 127.0.0.1:8080)
 `/var/lib/live-recorder/`
 - `settings.json` — รหัสผ่าน, ntfy topic, บัญชีที่เฝ้า, คุกกี้
 - `subscriptions.json` — รายการ subscription (ครั้งแรกจะสร้างข้อมูลตัวอย่างให้ มีป้าย "ตัวอย่าง")
+- `likes.json` — Google client id/secret, token, คลิปที่ไลค์และสถานะ (รอโพสต์/โพสต์แล้ว/ข้าม)
 - `recordings/` — ไลฟ์ที่อัดไว้
 
 ## การอัปเดต
@@ -46,11 +48,17 @@ push ขึ้น `main` → เซิร์ฟเวอร์ดึงเอง
 
 ## สิ่งที่จะทำต่อ
 1. ใส่ราคา/วันต่ออายุจริงใน /subs (เจ้าของทำเองในหน้าเว็บ)
-2. `/likes` — แทน IFTTT (฿2,100/ปี): เช็กเพลย์ลิสต์คลิปที่ไลค์ของ YouTube (ต้องตั้ง Google API/OAuth)
-   → ส่ง ntfy พร้อมลิงก์ `https://x.com/intent/post?text=...&url=...` → กดแล้วโพสต์เอง (ฟรี ไม่ใช้ X API)
-   ข้อความเดิม: `Liked on YouTube: <ชื่อคลิป>` + ลิงก์ · ทวีตแยกทีละคลิป
+2. ตั้งค่า `/likes` ครั้งแรก (เจ้าของทำเอง ตามขั้นตอนในหน้า /likes): สร้าง Google Cloud project → เปิด YouTube Data API v3
+   → OAuth consent External + **Publish (In production)** ไม่งั้น token หมดทุก 7 วัน → client แบบ "TVs and Limited Input devices"
+   → วาง Client ID/secret → กด "เชื่อม YouTube" → ใส่รหัสที่ google.com/device
+   พอใช้ได้แล้ว ยกเลิก IFTTT (฿2,100/ปี) และแก้สถานะใน /subs
 3. หน้าคิวร้านเช่ากล้อง — แยกออกไปอยู่ข้างนอก (Cloudflare Pages `ชื่อร้าน.pages.dev`) ห้ามใช้โดเมนส่วนตัว
 4. (ไม่ด่วน) ขยายอัด IG / ระบบสำรองไฟล์ไลฟ์
+
+## ดีไซน์
+ใช้ภาษาเดียวกับ spongelotus.work: พื้นขาว ตัวอักษร #1c2126 สีรอง #7f8790 เส้น #e3e8eb accent #7fa6bd,
+ฟอนต์ Geist + Geist Mono (+ Noto Sans Thai / DB Helvethaica), ปุ่มทรงแคปซูล, หัวข้อใหญ่ตัวชิด, ป้ายเล็ก mono ตัวพิมพ์ใหญ่
+CSS อยู่ใน `recorder/web.py` (ตัวแปร `CSS`)
 
 ## ข้อตกลง
 - ห้ามทำให้ recorder พัง ทดสอบก่อน push
