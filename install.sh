@@ -13,6 +13,12 @@ export DEBIAN_FRONTEND=noninteractive
 
 step() { echo; echo "==> $*"; }
 
+for i in $(seq 1 360); do
+  curl -fsS --max-time 5 https://api.ipify.org >/dev/null 2>&1 && break
+  [ "$i" = 1 ] && echo "รออินเทอร์เน็ต (ยังไม่มี public IP?) ..."
+  sleep 10
+done
+
 step "[1/7] ติดตั้งโปรแกรมที่ต้องใช้ (ffmpeg, python, git) — รอสักครู่"
 echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
 echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
@@ -56,8 +62,12 @@ alphabet = "abcdefghjkmnpqrstuvwxyz23456789"
 cfg.setdefault("accounts", [])
 cfg.setdefault("check_interval", 60)
 cfg.setdefault("ntfy_server", "https://ntfy.sh")
+if not cfg.get("ntfy_topic") and os.environ.get("TKREC_NTFY_TOPIC"):
+    cfg["ntfy_topic"] = os.environ["TKREC_NTFY_TOPIC"]
 if not cfg.get("ntfy_topic"):
     cfg["ntfy_topic"] = "bua-live-" + "".join(secrets.choice(alphabet) for _ in range(24))
+if not cfg.get("web_password") and os.environ.get("TKREC_PASSWORD"):
+    cfg["web_password"] = os.environ["TKREC_PASSWORD"]
 if not cfg.get("web_password"):
     cfg["web_password"] = "-".join("".join(secrets.choice(alphabet) for _ in range(4)) for _ in range(3))
 if not cfg.get("secret"):
