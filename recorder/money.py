@@ -233,11 +233,13 @@ def ingest(text, source="", received=None, title=None):
     text = (text or "")[:2000]
     if not norm(text) or (title is not None and not is_bank(title, text)):
         # still note that the phone reached us (shows "connected" on the page); content is not kept
-        update(lambda d: d.update(last_in=received.isoformat(timespec="seconds")))
-        return ("empty" if not norm(text) else "ignored"), None
+        st = "empty" if not norm(text) else "ignored"
+        update(lambda d: d.update(last_in=received.isoformat(timespec="seconds"), last_status=st))
+        return st, None
     if is_otp(text):
         log.info("dropped an OTP message")
-        update(lambda d: d.update(last_in=received.isoformat(timespec="seconds")))
+        update(lambda d: d.update(last_in=received.isoformat(timespec="seconds"), last_status="otp",
+                                  last_bank_in=received.isoformat(timespec="seconds")))
         return "otp", None
     p = parse(text, received)
 
@@ -271,6 +273,8 @@ def ingest(text, source="", received=None, title=None):
     with _lock:
         d = load_unlocked()
         res = fn(d)
+        d["last_status"] = res[0]
+        d["last_bank_in"] = received.isoformat(timespec="seconds")
         _write(d)
     log.info("alert from %s: %s", source or "?", res[0])
     return res

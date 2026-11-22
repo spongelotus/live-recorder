@@ -1055,8 +1055,15 @@ if(to)f.to.value=to;f.category.value=c||'';if(n!==undefined)f.merchant.value=n;s
         cfg = settings.load()
         url = (cfg.get("public_url") or "https://<ลิงก์ Hub>").rstrip("/") + "/money/in?k=" + d["token"]
         last = d.get("last_in")
-        last = (f'<span class="pill ok">มือถือส่งมาล่าสุด {E(last[5:16].replace("T", " "))}</span>' if last
+        what = {"added": "บันทึกรายการแล้ว", "duplicate": "ซ้ำกับรายการเดิม (ไม่บันทึกซ้ำ)",
+                "unread": "อ่านไม่ออก — อยู่ในหัวข้อ “อ่านไม่ออก”", "otp": "OTP (ทิ้ง ไม่เก็บ)",
+                "ignored": "ไม่ใช่แจ้งเตือน KBank (ไม่เก็บ)", "empty": "ข้อความว่าง"}.get(d.get("last_status", ""), "")
+        last = (f'<span class="pill ok">มือถือส่งมาล่าสุด {E(last[5:16].replace("T", " "))}</span>'
+                + (f' <span class="muted">· {E(what)}</span>' if what else "") if last
                 else '<span class="pill">ยังไม่เคยได้รับข้อมูลจากมือถือ</span>')
+        lb = d.get("last_bank_in")
+        if lb:
+            last += f'<br><span class="pill" style="margin-top:6px">แจ้งเตือน KBank ล่าสุด {E(lb[5:16].replace("T", " "))}</span>'
         rules = "\n".join(f'{r["kw"]} = {r["cat"]}' for r in d["rules"])
         wal = "".join(f'<div><label>{name}</label><input name="{w}" type="number" step="0.01" placeholder="{money.balances(d)[w]:.2f}"></div>'
                       for w, name in money.WALLETS.items())
