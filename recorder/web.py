@@ -172,8 +172,8 @@ details.fold[open]>summary::before{transform:rotate(90deg)}
 .card.dark .big{font-size:clamp(28px,8vw,38px)}
 .big small{font-size:15px;color:var(--muted);letter-spacing:0;font-weight:400;margin-left:4px}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
-.stat{background:rgba(255,255,255,.08);border-radius:14px;padding:8px 12px;min-width:0}
-.stat b{display:block;font-size:clamp(28px,8vw,34px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.1;font-weight:300;letter-spacing:-.03em}.stat span{font-size:12px;color:#a9a9a4}
+.stat{background:rgba(255,255,255,.08);border-radius:14px;padding:8px 12px;min-width:0;container-type:inline-size}
+.stat b{display:block;font-size:clamp(18px,22cqi,34px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.1;font-weight:300;letter-spacing:-.03em}.stat span{font-size:12px;color:#a9a9a4}
 /* money */
 .plus{color:#3f7a12}.minus{color:var(--ink)}
 .wallets{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:0 0 10px}
