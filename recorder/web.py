@@ -72,6 +72,7 @@ a{color:inherit;text-decoration:none}:focus-visible{outline:2px solid var(--ink)
 .seg a{display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:999px;font-size:14px;font-weight:500;color:var(--ink2);white-space:nowrap;transition:background .2s}
 .seg a:hover{background:var(--soft)}.seg a.on{background:var(--dark);color:#fff}
 .seg svg{width:17px;height:17px}
+.seg.tabs{display:inline-flex;margin:0 0 10px}@media(max-width:760px){.seg.tabs{display:inline-flex}}
 .ibtn{width:42px;height:42px;border-radius:50%;background:var(--card);display:grid;place-items:center;flex:none}
 .ibtn svg{width:19px;height:19px}.ibtn:hover{background:var(--soft2)}
 .tools{display:flex;gap:8px}
@@ -226,17 +227,27 @@ def icon(name):
             f'stroke-linecap="round" stroke-linejoin="round">{ICONS[name]}</svg>')
 
 
-NAV = [("/", "Hub", "home"), ("/money", "เงิน", "wallet"), ("/subs", "Subscriptions", "card"),
-       ("/shop", "ร้านกล้อง", "camera"), ("/recorder", "อัดไลฟ์", "rec"), ("/likes", "Likes", "heart")]
+NAV = [("/", "Hub", "home"), ("/money", "รายรับ-จ่าย", "wallet"), ("/shop", "ร้าน", "camera"),
+       ("/recorder", "RECORD", "rec")]
+# pages without their own menu item light up their parent
+NAV_PARENT = {"/subs": "/money", "/likes": "/"}
+# tabs shown at the top of the money pages
+MONEY_TABS = [("/money", "รายรับรายจ่าย"), ("/subs", "Subscriptions")]
+
+
+def money_tabs(active):
+    t = "".join(f'<a href="{h}"{" class=on" if h == active else ""}>{E(n)}</a>' for h, n in MONEY_TABS)
+    return f'<nav class="seg tabs">{t}</nav>'
 SECTION = {"/recorder": "k-rec", "/subs": "k-subs", "/likes": "k-likes", "/money": "k-money", "/shop": "k-shop"}
 
 
 def page(title, body, nav=True, active="", heading=None, sub=""):
     seg = dock = tools = ""
+    on = NAV_PARENT.get(active, active)
     if nav:
-        seg = "".join(f'<a href="{h}"{" class=on" if h == active else ""}>{icon(i)}{E(t)}</a>' for h, t, i in NAV)
+        seg = "".join(f'<a href="{h}"{" class=on" if h == on else ""}>{icon(i)}{E(t)}</a>' for h, t, i in NAV)
         seg = f'<nav class="seg">{seg}</nav>'
-        dock = "".join(f'<a href="{h}" aria-label="{E(t)}"{" class=on" if h == active else ""}>{icon(i)}</a>'
+        dock = "".join(f'<a href="{h}" aria-label="{E(t)}"{" class=on" if h == on else ""}>{icon(i)}</a>'
                        for h, t, i in NAV)
         dock = f'<nav class="dock">{dock}</nav>'
         tools = (f'<div class="tools"><a class="ibtn" href="/settings" title="ตั้งค่าระบบ">{icon("gear")}</a>'
@@ -638,7 +649,7 @@ class Handler(ShopPages, BaseHTTPRequestHandler):
         edit_id = (self.query().get("edit") or [""])[0]
         rate = float(data.get("usd_rate") or 33)
         month, year = subs.totals(data)
-        parts = [self.flash({"saved": "บันทึกแล้ว", "deleted": "ลบแล้ว"})]
+        parts = [money_tabs("/subs"), self.flash({"saved": "บันทึกแล้ว", "deleted": "ลบแล้ว"})]
         parts.append(f'<div class="card dark sumline"><b>{subs.fmt_money(month)}<small>/ เดือน</small></b>'
                      f'<b>{subs.fmt_money(year)}<small>/ ปี</small></b>'
                      f'<span class="muted mono" title="นับเฉพาะรายเดือน/รายปีที่ยังไม่ยกเลิก">1 USD = {rate:g} THB</span></div>')
@@ -822,7 +833,7 @@ class Handler(ShopPages, BaseHTTPRequestHandler):
         mname = f"{TH_M[first.month]} {first.year + 543}"
         exp, inc, cats = money.month_summary(d, ym)
         n_imp, s_imp = (q.get("n") or ["0"])[0], (q.get("s") or ["0"])[0]
-        parts = [self.flash({"saved": "บันทึกแล้ว", "deleted": "ลบแล้ว", "token": "เปลี่ยนรหัสลับแล้ว — อย่าลืมแก้ลิงก์ใน MacroDroid",
+        parts = [money_tabs("/money"), self.flash({"saved": "บันทึกแล้ว", "deleted": "ลบแล้ว", "token": "เปลี่ยนรหัสลับแล้ว — อย่าลืมแก้ลิงก์ใน MacroDroid",
                              "adjusted": "ปรับยอดแล้ว", "imported": f"นำเข้าแล้ว {n_imp} รายการ · ข้าม {s_imp}", "learned": "บันทึกแล้ว · จำร้านนี้ไว้ใส่หมวดให้ครั้งหน้า"})]
         nav_m = (f'<a class="btn gray sm" href="/money?m={prev_m}">‹</a><span class="title">{mname}</span>'
                  + (f'<a class="btn gray sm" href="/money?m={next_m}">›</a>' if next_m <= now.strftime("%Y-%m") else ""))
