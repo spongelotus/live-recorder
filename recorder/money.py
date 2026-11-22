@@ -397,7 +397,9 @@ def import_csv(d, text):
     Returns (added, skipped)."""
     import csv
     import io
-    have = {(it.get("time", "")[:16], it.get("kind"), round(float(it.get("amount") or 0), 2)) for it in d["items"]}
+    # same minute + type + amount + shop = already there (two different shops in one minute are both kept)
+    have = {(it.get("time", "")[:16], it.get("kind"), round(float(it.get("amount") or 0), 2), it.get("merchant", ""))
+            for it in d["items"]}
     added = skipped = 0
     latest = None   # (time, KBank balance after that row) — from bank statements
     for row in csv.reader(io.StringIO(text.strip())):
@@ -414,7 +416,7 @@ def import_csv(d, text):
         kind = r["kind"] if r["kind"] in KINDS else "expense"
         wallet = r["wallet"] if r["wallet"] in WALLETS else "kbank"
         to = r["to"] if kind == "transfer" and r["to"] in WALLETS else ""
-        key = (t, kind, amount)
+        key = (t, kind, amount, r["merchant"][:60])
         try:
             b = float(r["balance"].replace(",", "")) if r["balance"] else None
         except ValueError:
