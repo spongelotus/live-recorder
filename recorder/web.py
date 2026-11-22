@@ -154,13 +154,13 @@ details.fold[open]>summary::before{transform:rotate(90deg)}
 
 /* hub bento */
 .bento{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:6px}
-.bento .card{margin:0;display:flex;flex-direction:column;gap:2px;transition:transform .2s}
+.bento .card{margin:0;min-width:0;display:flex;flex-direction:column;gap:2px;transition:transform .2s}
 .bento .row{background:none;border-radius:0;padding:7px 0;margin:0;border-top:1px solid var(--line);font-size:14px}
 .bento .row .muted,.bento .row>div{min-width:0}.clip{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bento a.card:hover{transform:translateY(-2px)}
 .bento .wide{grid-column:1/-1}
-@media(max-width:900px){.bento{grid-template-columns:1fr 1fr}}
-@media(max-width:600px){.bento{grid-template-columns:1fr}}
+@media(max-width:900px){.bento{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.bento{grid-template-columns:minmax(0,1fr)}}
 .chead{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .ico{width:36px;height:36px;border-radius:50%;background:var(--acc);color:var(--acc-ink);display:grid;place-items:center;flex:none}
 .ico svg{width:18px;height:18px}
@@ -169,8 +169,8 @@ details.fold[open]>summary::before{transform:rotate(90deg)}
 .big{font-size:38px;font-weight:300;letter-spacing:-.04em;line-height:1;margin:6px 0 8px}
 .card.dark .big{font-size:clamp(28px,8vw,38px)}
 .big small{font-size:15px;color:var(--muted);letter-spacing:0;font-weight:400;margin-left:4px}
-.stats{display:flex;gap:8px;flex-wrap:wrap}
-.stat{background:rgba(255,255,255,.08);border-radius:14px;padding:8px 12px;min-width:110px;flex:1}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.stat{background:rgba(255,255,255,.08);border-radius:14px;padding:8px 12px;min-width:0}
 .stat b{display:block;font-size:clamp(32px,9vw,40px);line-height:1.1;font-weight:300;letter-spacing:-.03em}.stat span{font-size:12px;color:#a9a9a4}
 .hello{font-size:20px;font-weight:500;letter-spacing:-.02em;line-height:1.2;margin:0}
 """
