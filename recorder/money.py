@@ -23,7 +23,7 @@ log = logging.getLogger("money")
 
 MONEY_FILE = settings.DATA_DIR / "money.json"
 
-WALLETS = {"kbank": "KBank", "truemoney": "TrueMoney", "cash": "เงินสด"}
+WALLETS = {"kbank": "KBank", "savings": "เงินเก็บ", "truemoney": "TrueMoney", "linepay": "LINE Pay", "cash": "เงินสด"}
 KINDS = {"expense": "รายจ่าย", "income": "รายรับ", "transfer": "ย้ายเงิน", "refund": "คืนเงิน"}
 EXPENSE_CATS = ["อาหาร", "เดินทาง", "ช้อปปิ้ง", "บิล/ค่าบริการ", "สุขภาพ", "บันเทิง", "อื่นๆ"]
 INCOME_CATS = ["เงินเดือน", "โอนเข้า", "รายได้อื่น"]
@@ -47,7 +47,8 @@ DEFAULT_RULES = [
 
 # money moved to another of her wallets (not spending)
 TO_WALLET = [("TRUEMONEY", "truemoney"), ("TRUE MONEY", "truemoney"), ("ทรูมันนี่", "truemoney"),
-             ("WALLET", "truemoney"), ("ATM", "cash"), ("ถอนเงินสด", "cash"), ("กดเงิน", "cash")]
+             ("RABBIT LINE PAY", "linepay"), ("LINE PAY", "linepay"), ("LINEPAY", "linepay"),
+             ("วนัชพร", "savings"), ("ATM", "cash"), ("ถอนเงินสด", "cash"), ("กดเงิน", "cash")]
 
 _lock = threading.Lock()
 

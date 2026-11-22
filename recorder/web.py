@@ -174,7 +174,8 @@ details.fold[open]>summary::before{transform:rotate(90deg)}
 .stat b{display:block;font-size:clamp(32px,9vw,40px);line-height:1.1;font-weight:300;letter-spacing:-.03em}.stat span{font-size:12px;color:#a9a9a4}
 /* money */
 .plus{color:#3f7a12}.minus{color:var(--ink)}
-.wallets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 10px}
+.wallets{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:0 0 10px}
+@media(max-width:600px){.wallets{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .wallets .card{margin:0;padding:12px 14px;min-width:0}.wallets b{display:block;font-size:clamp(17px,4.6vw,24px);font-weight:400;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 4px}.chips button{background:var(--soft2);color:var(--ink);padding:6px 12px;font-size:13px}
 .seg2{display:flex;gap:4px;background:var(--soft);padding:4px;border-radius:999px}.seg2 label{flex:1;margin:0;text-align:center}
@@ -802,6 +803,8 @@ class Handler(BaseHTTPRequestHandler):
             if w == "kbank" and d.get("bank_balance_at"):
                 extra = f'<div class="muted">ตามธนาคาร {E(d["bank_balance_at"][5:10].replace("-", "/"))} {E(d["bank_balance_at"][11:16])}</div>'
             wc.append(f'<div class="card"><div class="muted">{name}</div><b>{money.fmt(bal[w])}</b>{extra}</div>')
+        total = sum(bal.values())
+        wc.append(f'<div class="card dark"><div class="muted">รวมทุกกระเป๋า</div><b>{money.fmt(total)}</b></div>')
         parts.append(f'<div class="wallets">{"".join(wc)}</div>')
 
         edit_id = (q.get("edit") or [""])[0]
@@ -910,7 +913,9 @@ class Handler(BaseHTTPRequestHandler):
                      '<button type="button" onclick="pre(\'expense\',\'truemoney\',\'อาหาร\',\'เซเว่น\')">🏪 เซเว่น (TrueMoney)</button>'
                      '<button type="button" onclick="pre(\'expense\',\'cash\',\'อาหาร\',\'\')">💵 จ่ายเงินสด</button>'
                      '<button type="button" onclick="pre(\'transfer\',\'kbank\',\'\',\'\',\'cash\')">🏧 กด ATM</button>'
-                     '<button type="button" onclick="pre(\'transfer\',\'kbank\',\'\',\'\',\'truemoney\')">↗ เติม TrueMoney</button></div>')
+                     '<button type="button" onclick="pre(\'transfer\',\'kbank\',\'\',\'\',\'truemoney\')">↗ เติม TrueMoney</button>'
+                     '<button type="button" onclick="pre(\'expense\',\'linepay\',\'เดินทาง\',\'BTS\')">🚇 BTS (LINE Pay)</button>'
+                     '<button type="button" onclick="pre(\'transfer\',\'kbank\',\'\',\'\',\'savings\')">🏦 โอนเข้าเงินเก็บ</button></div>')
         delete = ""
         learn = ""
         raw = ""
@@ -967,7 +972,7 @@ if(to)f.to.value=to;f.category.value=c||'';if(n!==undefined)f.merchant.value=n;s
 <button class="gray sm">เปลี่ยนรหัสลับ</button></form></div></details>
 <details class="fold"><summary>ปรับยอดกระเป๋า</summary><form method="post" action="/money/adjust" class="card">
 <p class="muted" style="margin-top:0">ใส่ยอดเงินจริงตอนนี้ (เว้นว่าง = ไม่เปลี่ยน) · KBank จะปรับตามยอดที่ธนาคารแจ้งให้เองทุกครั้ง</p>
-<div class="two" style="grid-template-columns:repeat(3,1fr)">{wal}</div>
+<div class="two" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">{wal}</div>
 <div class="actions"><button>บันทึก</button></div></form></details>
 <details class="fold"><summary>นำเข้ารายการย้อนหลัง</summary><form method="post" action="/money/import" class="card">
 <p class="muted" style="margin-top:0">วางข้อความ CSV ที่ Claude แปลงจาก statement ให้ · รายการที่มีอยู่แล้ว (เวลา+ประเภท+ยอดเดียวกัน) จะข้ามให้เอง</p>
