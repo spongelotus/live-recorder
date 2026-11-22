@@ -230,10 +230,10 @@ def ingest(text, source="", received=None, title=None):
     status: added | duplicate | otp | unread | ignored | empty"""
     received = received or now()
     text = (text or "")[:2000]
-    if not norm(text):
-        return "empty", None
-    if title is not None and not is_bank(title, text):
-        return "ignored", None
+    if not norm(text) or (title is not None and not is_bank(title, text)):
+        # still note that the phone reached us (shows "connected" on the page); content is not kept
+        update(lambda d: d.update(last_in=received.isoformat(timespec="seconds")))
+        return ("empty" if not norm(text) else "ignored"), None
     if is_otp(text):
         log.info("dropped an OTP message")
         update(lambda d: d.update(last_in=received.isoformat(timespec="seconds")))
