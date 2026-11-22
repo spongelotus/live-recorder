@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import likes, money, notify, record, settings, subs
+from .shop_web import ShopPages
 
 log = logging.getLogger("web")
 E = html.escape
@@ -49,14 +50,14 @@ FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
 CSS = """
 :root{--canvas:#ebeae5;--card:#fff;--soft:#f4f3ef;--soft2:#e9e8e2;--ink:#151515;--ink2:#3a3a38;--muted:#6f6e69;
 --dark:#1c1c1c;--lime:#d3e27f;--line:#e2e1db;
---rec:#ffb4a3;--money:#bfe3f2;--money-ink:#145a76;--rec-ink:#b2321d;--subs:#d3e27f;--subs-ink:#4f5d0f;--likes:#d7cdfb;--likes-ink:#5130b8;
+--rec:#ffb4a3;--money:#bfe3f2;--money-ink:#145a76;--rec-ink:#b2321d;--subs:#d3e27f;--subs-ink:#4f5d0f;--likes:#d7cdfb;--likes-ink:#5130b8;--shop:#ffd98a;--shop-ink:#7a4a00;
 --acc:var(--lime);--acc-ink:var(--ink);
 --sans:"Geist","Anuphan",system-ui,-apple-system,"Segoe UI",sans-serif;
 --mono:"Geist Mono","Anuphan",ui-monospace,Menlo,monospace;color-scheme:light}
 .k-rec{--acc:var(--rec);--acc-ink:var(--rec-ink)}.k-subs{--acc:var(--subs);--acc-ink:var(--subs-ink)}
 .pill.cyc-monthly{background:#cfe6ff;color:#0b4f7c}.pill.cyc-yearly{background:#e6dcff;color:#5130b8}
 .pill.cyc-usage{background:#ffe1c2;color:#8a4b00}.pill.cyc-free{background:#dff3c4;color:#2f6b0f}
-.k-likes{--acc:var(--likes);--acc-ink:var(--likes-ink)}.k-money{--acc:var(--money);--acc-ink:var(--money-ink)}
+.k-likes{--acc:var(--likes);--acc-ink:var(--likes-ink)}.k-shop{--acc:var(--shop);--acc-ink:var(--shop-ink)}.k-money{--acc:var(--money);--acc-ink:var(--money-ink)}
 *{box-sizing:border-box}html,body{margin:0;overflow-x:clip}
 body{background:var(--canvas);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}:focus-visible{outline:2px solid var(--ink);outline-offset:3px;border-radius:8px}
@@ -215,6 +216,7 @@ ICONS = {
     "log": '<path d="M5 4h14v16H5z"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4"/>',
     "out": '<path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/>',
     "play": '<path d="M8 5.5v13l11-6.5z"/>',
+    "camera": '<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.8l1.4-2h4.6l1.4 2h1.8A2.5 2.5 0 0 1 20 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5z"/><circle cx="12" cy="13" r="3.6"/>',
     "wallet": '<path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3"/><rect x="3.5" y="7.5" width="17" height="12" rx="2.5"/><circle cx="16" cy="13.5" r="1.3" fill="currentColor"/>',
 }
 
@@ -225,8 +227,8 @@ def icon(name):
 
 
 NAV = [("/", "Hub", "home"), ("/money", "เงิน", "wallet"), ("/subs", "Subscriptions", "card"),
-       ("/recorder", "อัดไลฟ์", "rec"), ("/likes", "Likes", "heart")]
-SECTION = {"/recorder": "k-rec", "/subs": "k-subs", "/likes": "k-likes", "/money": "k-money"}
+       ("/shop", "ร้านกล้อง", "camera"), ("/recorder", "อัดไลฟ์", "rec"), ("/likes", "Likes", "heart")]
+SECTION = {"/recorder": "k-rec", "/subs": "k-subs", "/likes": "k-likes", "/money": "k-money", "/shop": "k-shop"}
 
 
 def page(title, body, nav=True, active="", heading=None, sub=""):
@@ -273,7 +275,7 @@ def thai_time(iso):
         return "-"
 
 
-class Handler(BaseHTTPRequestHandler):
+class Handler(ShopPages, BaseHTTPRequestHandler):
     server_version = "tkrec"
     mgr = None
 
@@ -340,6 +342,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.subs_page()
         if path == "/money":
             return self.money_page()
+        if path == "/shop":
+            return self.shop_page()
         if path == "/likes":
             return self.likes_page()
         if path == "/likes/go":
@@ -367,6 +371,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.money_in()
         if not self.authed():
             return self.redirect("/login")
+        if path == "/shop/import":
+            return self.shop_import()
         f = self.form()
         if path == "/recorder/settings":
             return self.rec_settings_post(f)
@@ -391,6 +397,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.likes_post(path, f)
         if path.startswith("/money/"):
             return self.money_post(path, f)
+        if path.startswith("/shop/"):
+            return self.shop_post(path, f)
         self.send_html("not found", 404)
 
     # ---------- login ----------
@@ -616,7 +624,12 @@ class Handler(BaseHTTPRequestHandler):
         money_card = (f'<a class="card k-money" href="/money"><div class="chead"><div class="ctitle">'
                       f'<span class="ico">{icon("wallet")}</span><span>รายรับรายจ่าย<small>จ่ายเดือนนี้</small></span></div>{mpill}</div>'
                       f'<div class="big">{money.fmt(m_exp)}</div>{wrows}</a>')
-        body = f'<div class="bento">{summary}{money_card}{subs_card}{rec_card}{likes_card}</div>'
+        try:
+            shop_card = self.shop_card()
+        except Exception:
+            log.exception("shop card")
+            shop_card = ""
+        body = f'<div class="bento">{summary}{money_card}{shop_card}{subs_card}{rec_card}{likes_card}</div>'
         self.send_html(page("Hub", body, active="/", heading=None))
 
     # ---------- subscriptions ----------
