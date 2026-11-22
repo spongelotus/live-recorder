@@ -388,7 +388,7 @@ def learn(d, merchant, cat):
 
 
 # ---------- bulk import (statement converted to CSV) ----------
-IMPORT_COLS = ["time", "kind", "amount", "wallet", "to", "category", "merchant", "note"]
+IMPORT_COLS = ["time", "kind", "amount", "wallet", "to", "category", "merchant", "note", "balance"]
 
 
 def import_csv(d, text):
@@ -399,6 +399,7 @@ def import_csv(d, text):
     import io
     have = {(it.get("time", "")[:16], it.get("kind"), round(float(it.get("amount") or 0), 2)) for it in d["items"]}
     added = skipped = 0
+    latest = None   # (time, KBank balance after that row) — from bank statements
     for row in csv.reader(io.StringIO(text.strip())):
         if not row or row[0].strip().lower() in ("time", "เวลา"):
             continue
@@ -414,6 +415,12 @@ def import_csv(d, text):
         wallet = r["wallet"] if r["wallet"] in WALLETS else "kbank"
         to = r["to"] if kind == "transfer" and r["to"] in WALLETS else ""
         key = (t, kind, amount)
+        try:
+            b = float(r["balance"].replace(",", "")) if r["balance"] else None
+        except ValueError:
+            b = None
+        if b is not None and wallet == "kbank" and (latest is None or t >= latest[0]):
+            latest = (t, b)
         if not amount or key in have:
             skipped += 1
             continue
@@ -426,9 +433,11 @@ def import_csv(d, text):
         d["items"].append({"id": secrets.token_hex(4), "time": t, "kind": kind, "amount": amount,
                            "wallet": wallet, "to": to, "category": cat, "merchant": r["merchant"][:60],
                            "note": r["note"][:200], "auto": False, "source": "นำเข้า", "raw": "",
-                           "review": not cat and kind in ("expense", "refund")})
+                           "review": False})
         added += 1
     d["items"].sort(key=lambda it: it.get("time", ""), reverse=True)
+    if latest and latest[0] > (d.get("bank_balance_at") or "")[:16]:
+        d["bank_balance"], d["bank_balance_at"] = latest[1], latest[0]
     if added and d.get("bank_balance") is not None:
         # older rows must not change today's KBank balance (the bank's figure is the truth)
         d["wallets"]["kbank"]["opening"] = round(d["bank_balance"] - sum(signed(it, "kbank") for it in d["items"]), 2)
