@@ -479,3 +479,18 @@ def cat_color(d, cat):
     names = [c for c in d.get("expense_cats", []) + d.get("income_cats", []) if c not in FIXED]
     i = names.index(cat) if cat in names else sum(map(ord, cat))
     return PALETTE[(i + 10) % len(PALETTE)]
+
+
+TH_DOW = ["จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."]
+
+
+def day_spend(d, ym):
+    """{'YYYY-MM-DD': spent} for one month (expenses minus refunds, transfers excluded)."""
+    out = {}
+    for it in d["items"]:
+        if month_key(it) != ym or it.get("kind") not in ("expense", "refund"):
+            continue
+        a = float(it.get("amount") or 0) * (-1 if it["kind"] == "refund" else 1)
+        k = it["time"][:10]
+        out[k] = out.get(k, 0) + a
+    return out

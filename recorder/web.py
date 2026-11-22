@@ -189,6 +189,15 @@ details.fold[open]>summary::before{transform:rotate(90deg)}
 .netline{font-size:14px;color:var(--ink2);margin:0 4px 10px}.netline b{font-family:var(--mono);font-weight:500;margin-left:4px}
 .netline .pos{color:#2f6b0f}.netline .neg{color:#b2321d}
 .card.list>a.catrow{display:block}a.catrow .row.plain{display:flex;width:100%}a.catrow:hover{background:var(--soft)}
+.dchart{display:flex;align-items:flex-end;gap:2px;height:120px}
+.dbar{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+.dbar i{display:block;width:100%;border-radius:4px 4px 2px 2px;background:#1c1c1c;min-height:2px}
+.dbar.we i{background:#ff8a70}.dbar span{font-size:9px;color:var(--muted);margin-top:3px;font-family:var(--mono)}
+.dbar:hover i{opacity:.7}.dbar.over i{border-top:4px dashed #fff;box-shadow:0 -3px 0 #b2321d}
+.davg{display:flex;gap:6px 18px;flex-wrap:wrap;margin-top:10px;font-size:13px;color:var(--ink2)}.davg b{font-family:var(--mono);font-weight:500}
+h2.dayh{display:flex;justify-content:space-between;align-items:baseline;font-weight:500;color:var(--muted);scroll-margin-top:12px}
+h2.dayh small{font-size:12px;font-weight:400}h2.dayh.we>span:first-child{color:#c2361d}
+.dtot{font-family:var(--mono);font-size:13px}.dtot .neg{color:#b2321d}.dtot .pos{color:#2f6b0f}
 .dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:8px;vertical-align:-1px}
 .barc{height:8px}
 .raw{font-family:var(--mono);font-size:12px;background:var(--soft);border-radius:12px;padding:8px 10px;margin:6px 0;word-break:break-word}
@@ -852,6 +861,32 @@ class Handler(BaseHTTPRequestHandler):
             parts.append(f'<h2>จ่ายตามหมวด <span class="muted" style="font-weight:400">· แตะหมวดเพื่อดูรายการ</span></h2>'
                          f'<div class="card list">{rows}</div>')
 
+        # ---- daily spending chart ----
+        import calendar as _cal
+        spend = money.day_spend(d, ym)
+        last = _cal.monthrange(first.year, first.month)[1]
+        if ym == now.strftime("%Y-%m"):
+            last = now.day
+        if spend:
+            days = [f"{ym}-{i:02d}" for i in range(1, last + 1)]
+            vals = sorted(max(0.0, v) for v in spend.values())
+            # one huge day (e.g. a concert ticket) shouldn't flatten the rest: scale to the 90th percentile
+            peak = max(1.0, vals[int(0.9 * (len(vals) - 1))] if len(vals) > 4 else vals[-1])
+            wk = [spend.get(x, 0) for x in days if datetime.strptime(x, "%Y-%m-%d").weekday() < 5]
+            we = [spend.get(x, 0) for x in days if datetime.strptime(x, "%Y-%m-%d").weekday() >= 5]
+            bars = []
+            for x in days:
+                v = max(0.0, spend.get(x, 0))
+                dow = datetime.strptime(x, "%Y-%m-%d").weekday()
+                cls = ("we" if dow >= 5 else "") + (" over" if v > peak * 1.05 else "")
+                bars.append(f'<a class="dbar {cls}" href="#d-{x}" title="{x[8:]}/{x[5:7]} {money.TH_DOW[dow]} · {money.fmt(v)}">'
+                            f'<i style="height:{min(100, max(2, v / peak * 100)):.0f}%"></i><span>{int(x[8:])}</span></a>')
+            avg = lambda xs: sum(xs) / len(xs) if xs else 0
+            parts.append(f'<h2>จ่ายรายวัน</h2><div class="card"><div class="dchart">{"".join(bars)}</div>'
+                         f'<div class="davg"><span><i class="dot" style="background:#1c1c1c"></i>วันธรรมดา เฉลี่ย <b>{money.fmt(round(avg(wk)))}</b>/วัน</span>'
+                         f'<span><i class="dot" style="background:#ff8a70"></i>เสาร์–อาทิตย์ เฉลี่ย <b>{money.fmt(round(avg(we)))}</b>/วัน</span></div>'
+                         f'<div class="muted" style="margin-top:6px">แตะแท่งเพื่อดูรายการวันนั้น · แท่งที่มีขีดแดงด้านบน = วันที่ใช้เยอะผิดปกติ (สูงเกินกราฟ)</div></div>')
+
         month_items = [it for it in d["items"] if money.month_key(it) == ym]
         month_items.sort(key=lambda it: it.get("time", ""), reverse=True)
         if fcat:
@@ -879,7 +914,13 @@ class Handler(BaseHTTPRequestHandler):
         for it in month_items + [None]:
             dd = (it or {}).get("time", "")[:10]
             if dd != day and buf:
-                parts.append(f'<h2 class="muted" style="font-weight:500">{E(day[8:10])}/{E(day[5:7])}</h2>'
+                dow = datetime.strptime(day, "%Y-%m-%d").weekday()
+                dsp = spend.get(day, 0)
+                dinc = sum(float(x["amount"]) for x in month_items if x["time"][:10] == day and x["kind"] == "income")
+                tot = (f'<span class="dtot"><span class="neg">-{money.fmt(dsp)}</span>' if dsp > 0.004 else '<span class="dtot">') + \
+                      (f' <span class="pos">+{money.fmt(dinc)}</span>' if dinc else "") + '</span>'
+                parts.append(f'<h2 class="dayh{" we" if dow >= 5 else ""}" id="d-{day}"><span>{E(day[8:10])}/{E(day[5:7])} '
+                             f'<small>{money.TH_DOW[dow]}</small></span>{tot}</h2>'
                              f'<div class="card list">{"".join(buf)}</div>')
                 buf = []
             if it is None:
