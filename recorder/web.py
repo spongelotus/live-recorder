@@ -181,6 +181,8 @@ details.fold[open]>summary::before{transform:rotate(90deg)}
 .seg2 input{display:none}.seg2 span{display:block;padding:7px 4px;border-radius:999px;cursor:pointer;font-size:14px}
 .seg2 input:checked+span{background:var(--dark);color:#fff}
 .barc{height:6px;border-radius:9px;background:var(--soft2);margin-top:5px;overflow:hidden}.barc i{display:block;height:100%;background:var(--acc)}
+.dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:8px;vertical-align:-1px}
+.barc{height:8px}
 .raw{font-family:var(--mono);font-size:12px;background:var(--soft);border-radius:12px;padding:8px 10px;margin:6px 0;word-break:break-word}
 .hello{font-size:20px;font-weight:500;letter-spacing:-.02em;line-height:1.2;margin:0}
 """
@@ -809,7 +811,7 @@ class Handler(BaseHTTPRequestHandler):
 
         rev = money.needs_review(d)
         if rev:
-            rows = "".join(self.money_row(it) for it in rev[:20])
+            rows = "".join(self.money_row(it, d) for it in rev[:20])
             parts.append(f'<h2>รอใส่หมวด · {len(rev)}</h2><div class="card list">{rows}</div>')
         if d["inbox"]:
             rows = "".join(
@@ -823,9 +825,13 @@ class Handler(BaseHTTPRequestHandler):
                          f'<div class="card list">{rows}</div>')
         if cats:
             top = max(abs(v) for _, v in cats) or 1
-            rows = "".join(f'<div class="row" style="display:block"><div class="row plain"><span>{E(c)}</span>'
-                           f'<b class="mono" style="font-weight:500">{money.fmt(v)}</b></div>'
-                           f'<div class="barc"><i style="width:{max(0, v) / top * 100:.0f}%"></i></div></div>' for c, v in cats)
+            def cat_line(c, v):
+                bg, fg = money.cat_color(d, c)
+                return (f'<div class="row" style="display:block"><div class="row plain">'
+                        f'<span><i class="dot" style="background:{bg};box-shadow:inset 0 0 0 1px {fg}33"></i>{E(c)}</span>'
+                        f'<b class="mono" style="font-weight:500">{money.fmt(v)}</b></div>'
+                        f'<div class="barc"><i style="width:{max(0, v) / top * 100:.0f}%;background:{"#bdbcb5" if bg == money.GREY[0] else bg}"></i></div></div>')
+            rows = "".join(cat_line(c, v) for c, v in cats)
             parts.append(f'<h2>จ่ายตามหมวด</h2><div class="card list">{rows}</div>')
 
         month_items = [it for it in d["items"] if money.month_key(it) == ym]
@@ -845,13 +851,13 @@ class Handler(BaseHTTPRequestHandler):
             if it is None:
                 break
             day = dd
-            buf.append(self.money_row(it))
+            buf.append(self.money_row(it, d))
         parts.append(self.money_settings(d))
         sub = f'{len(rev)} รอใส่หมวด' if rev else ""
         html_ = page("เงิน", "".join(parts), active="/money", heading="รายรับรายจ่าย", sub=sub)
         self.send_html(html_)
 
-    def money_row(self, it):
+    def money_row(self, it, d=None):
         k = it.get("kind")
         a = float(it.get("amount") or 0)
         if k == "transfer":
@@ -866,7 +872,8 @@ class Handler(BaseHTTPRequestHandler):
         if k in ("transfer", "refund"):
             tags += f' <span class="pill">{money.KINDS[k]}</span>'
         if it.get("category") and it.get("category") != title:
-            tags += f' <span class="pill acc">{E(it["category"])}</span>'
+            bg, fg = money.cat_color(d or {}, it["category"])
+            tags += f' <span class="pill" style="background:{bg};color:{fg}">{E(it["category"])}</span>'
         if it.get("review"):
             tags += ' <span class="pill err">ใส่หมวด</span>'
         note = f' · {E(it["note"])}' if it.get("note") and it.get("note") != title else ""

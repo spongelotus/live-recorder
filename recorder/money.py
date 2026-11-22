@@ -458,3 +458,23 @@ def import_csv(d, text):
         # older rows must not change today's KBank balance (the bank's figure is the truth)
         d["wallets"]["kbank"]["opening"] = round(d["bank_balance"] - sum(signed(it, "kbank") for it in d["items"]), 2)
     return added, skipped
+
+
+# ---------- colours per category (pastel background, dark text) ----------
+PALETTE = [("#ffd6a5", "#8a4b00"), ("#bde0fe", "#0b4f7c"), ("#ffc8dd", "#8c1d4a"), ("#d3e27f", "#4f5d0f"),
+           ("#caffbf", "#2b6b1f"), ("#d7cdfb", "#5130b8"), ("#ffe5a3", "#7a5a00"), ("#ffb4a3", "#b2321d"),
+           ("#b9f0e6", "#0f5e52"), ("#f1c6f7", "#6d2a7a"), ("#c9d6ff", "#2b3f8f"), ("#f5d0b5", "#7a3e17")]
+FIXED = {"อาหาร": 0, "เดินทาง": 1, "ช้อปปิ้ง": 2, "บิล/ค่าบริการ": 3, "สุขภาพ": 4, "บันเทิง": 5,
+         "Messenger": 6, "MOM": 7, "เงินเดือน": 8, "โอนเข้า": 8, "รายได้อื่น": 9}
+GREY = ("#e9e8e2", "#3a3a38")
+
+
+def cat_color(d, cat):
+    """(background, text) for a category. Known ones keep a fixed colour; others follow list order."""
+    if not cat or cat in ("ยังไม่ใส่หมวด", "อื่นๆ"):
+        return GREY
+    if cat in FIXED:
+        return PALETTE[FIXED[cat]]
+    names = [c for c in d.get("expense_cats", []) + d.get("income_cats", []) if c not in FIXED]
+    i = names.index(cat) if cat in names else sum(map(ord, cat))
+    return PALETTE[(i + 10) % len(PALETTE)]
