@@ -10,10 +10,10 @@ import shutil
 import threading
 import time
 import urllib.parse
-from datetime import datetime
+from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from . import likes, notify, record, settings, subs
+from . import likes, money, notify, record, settings, subs
 
 log = logging.getLogger("web")
 E = html.escape
@@ -49,12 +49,12 @@ FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
 CSS = """
 :root{--canvas:#ebeae5;--card:#fff;--soft:#f4f3ef;--soft2:#e9e8e2;--ink:#151515;--ink2:#3a3a38;--muted:#6f6e69;
 --dark:#1c1c1c;--lime:#d3e27f;--line:#e2e1db;
---rec:#ffb4a3;--rec-ink:#b2321d;--subs:#d3e27f;--subs-ink:#4f5d0f;--likes:#d7cdfb;--likes-ink:#5130b8;
+--rec:#ffb4a3;--money:#bfe3f2;--money-ink:#145a76;--rec-ink:#b2321d;--subs:#d3e27f;--subs-ink:#4f5d0f;--likes:#d7cdfb;--likes-ink:#5130b8;
 --acc:var(--lime);--acc-ink:var(--ink);
 --sans:"Geist","Anuphan",system-ui,-apple-system,"Segoe UI",sans-serif;
 --mono:"Geist Mono","Anuphan",ui-monospace,Menlo,monospace;color-scheme:light}
 .k-rec{--acc:var(--rec);--acc-ink:var(--rec-ink)}.k-subs{--acc:var(--subs);--acc-ink:var(--subs-ink)}
-.k-likes{--acc:var(--likes);--acc-ink:var(--likes-ink)}
+.k-likes{--acc:var(--likes);--acc-ink:var(--likes-ink)}.k-money{--acc:var(--money);--acc-ink:var(--money-ink)}
 *{box-sizing:border-box}html,body{margin:0;overflow-x:clip}
 body{background:var(--canvas);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}:focus-visible{outline:2px solid var(--ink);outline-offset:3px;border-radius:8px}
@@ -172,6 +172,16 @@ details.fold[open]>summary::before{transform:rotate(90deg)}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
 .stat{background:rgba(255,255,255,.08);border-radius:14px;padding:8px 12px;min-width:0}
 .stat b{display:block;font-size:clamp(32px,9vw,40px);line-height:1.1;font-weight:300;letter-spacing:-.03em}.stat span{font-size:12px;color:#a9a9a4}
+/* money */
+.plus{color:#3f7a12}.minus{color:var(--ink)}
+.wallets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 10px}
+.wallets .card{margin:0;padding:12px 14px;min-width:0}.wallets b{display:block;font-size:clamp(17px,4.6vw,24px);font-weight:400;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 4px}.chips button{background:var(--soft2);color:var(--ink);padding:6px 12px;font-size:13px}
+.seg2{display:flex;gap:4px;background:var(--soft);padding:4px;border-radius:999px}.seg2 label{flex:1;margin:0;text-align:center}
+.seg2 input{display:none}.seg2 span{display:block;padding:7px 4px;border-radius:999px;cursor:pointer;font-size:14px}
+.seg2 input:checked+span{background:var(--dark);color:#fff}
+.barc{height:6px;border-radius:9px;background:var(--soft2);margin-top:5px;overflow:hidden}.barc i{display:block;height:100%;background:var(--acc)}
+.raw{font-family:var(--mono);font-size:12px;background:var(--soft);border-radius:12px;padding:8px 10px;margin:6px 0;word-break:break-word}
 .hello{font-size:20px;font-weight:500;letter-spacing:-.02em;line-height:1.2;margin:0}
 """
 
@@ -184,6 +194,7 @@ ICONS = {
     "log": '<path d="M5 4h14v16H5z"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4"/>',
     "out": '<path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/>',
     "play": '<path d="M8 5.5v13l11-6.5z"/>',
+    "wallet": '<path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3"/><rect x="3.5" y="7.5" width="17" height="12" rx="2.5"/><circle cx="16" cy="13.5" r="1.3" fill="currentColor"/>',
 }
 
 
@@ -192,9 +203,9 @@ def icon(name):
             f'stroke-linecap="round" stroke-linejoin="round">{ICONS[name]}</svg>')
 
 
-NAV = [("/", "Hub", "home"), ("/recorder", "อัดไลฟ์", "rec"), ("/likes", "Likes", "heart"),
-       ("/subs", "Subscriptions", "card")]
-SECTION = {"/recorder": "k-rec", "/subs": "k-subs", "/likes": "k-likes"}
+NAV = [("/", "Hub", "home"), ("/money", "เงิน", "wallet"), ("/recorder", "อัดไลฟ์", "rec"),
+       ("/likes", "Likes", "heart"), ("/subs", "Subscriptions", "card")]
+SECTION = {"/recorder": "k-rec", "/subs": "k-subs", "/likes": "k-likes", "/money": "k-money"}
 
 
 def page(title, body, nav=True, active="", heading=None, sub=""):
@@ -294,6 +305,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.about_page()
         if path == "/privacy":
             return self.privacy_page()
+        if path == "/money/in":
+            return self.send_html("ส่งข้อมูลด้วย POST", 405)
         if path == "/likes/go" and not self.authed():
             return self.likes_go(need_token=True)
         if not self.authed():
@@ -304,6 +317,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.home()
         if path == "/subs":
             return self.subs_page()
+        if path == "/money":
+            return self.money_page()
         if path == "/likes":
             return self.likes_page()
         if path == "/likes/go":
@@ -327,6 +342,8 @@ class Handler(BaseHTTPRequestHandler):
         path = urllib.parse.urlparse(self.path).path
         if path == "/login":
             return self.login_post()
+        if path == "/money/in":
+            return self.money_in()
         if not self.authed():
             return self.redirect("/login")
         f = self.form()
@@ -351,6 +368,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.subs_options(f)
         if path.startswith("/likes/"):
             return self.likes_post(path, f)
+        if path.startswith("/money/"):
+            return self.money_post(path, f)
         self.send_html("not found", 404)
 
     # ---------- login ----------
@@ -564,7 +583,17 @@ class Handler(BaseHTTPRequestHandler):
         likes_card = (f'<a class="card k-likes" href="/likes"><div class="chead"><div class="ctitle">'
                       f'<span class="ico">{icon("heart")}</span><span>Likes<small>YouTube → X</small></span></div>{lpill}</div>'
                       f'{likes_main}</a>')
-        body = f'<div class="bento">{summary}{rec_card}{likes_card}{subs_card}</div>'
+        md = money.load()
+        m_exp, _, _ = money.month_summary(md, now.strftime("%Y-%m"))
+        m_bal = money.balances(md)
+        n_rev = len(money.needs_review(md)) + len(md["inbox"])
+        mpill = f'<span class="pill err">รอตรวจ {n_rev}</span>' if n_rev else ""
+        wrows = "".join(f'<div class="row"><span>{name}</span><b>{money.fmt(m_bal[w])}</b></div>'
+                        for w, name in money.WALLETS.items())
+        money_card = (f'<a class="card k-money" href="/money"><div class="chead"><div class="ctitle">'
+                      f'<span class="ico">{icon("wallet")}</span><span>รายรับรายจ่าย<small>จ่ายเดือนนี้</small></span></div>{mpill}</div>'
+                      f'<div class="big">{money.fmt(m_exp)}</div>{wrows}</a>')
+        body = f'<div class="bento">{summary}{money_card}{rec_card}{likes_card}{subs_card}</div>'
         self.send_html(page("Hub", body, active="/", heading=None))
 
     # ---------- subscriptions ----------
@@ -705,6 +734,319 @@ class Handler(BaseHTTPRequestHandler):
             pass
         subs.save(data)
         self.redirect("/subs?msg=saved")
+
+    # ---------- money (รายรับรายจ่าย) ----------
+    def money_in(self):
+        """Called by MacroDroid on the phone. Not behind login — protected by the secret in ?k=."""
+        q = self.query()
+        d = money.load()
+        key = (q.get("k") or [""])[0] or self.headers.get("X-Token", "")
+        if not key or not hmac.compare_digest(key, d["token"]):
+            time.sleep(1)
+            return self.send_html("bad key", 403)
+        n = int(self.headers.get("Content-Length") or 0)
+        raw = self.rfile.read(min(n, 20_000)).decode("utf-8", "replace")
+        ctype = (self.headers.get("Content-Type") or "").lower()
+        title = text = None
+        if "json" in ctype:
+            try:
+                j = json.loads(raw)
+                title, text = str(j.get("title", "")), str(j.get("text", ""))
+            except Exception:
+                pass
+        elif "x-www-form-urlencoded" in ctype:
+            f = {k: v[-1] for k, v in urllib.parse.parse_qs(raw, keep_blank_values=True).items()}
+            title, text = f.get("title", ""), f.get("text", "")
+        if text is None:
+            # plain text: "title: ...\ntext: ..."  (or the message alone)
+            lines = raw.replace("\r", "").split("\n")
+            if lines and lines[0].lower().startswith("title:"):
+                title = lines[0][6:].strip()
+                rest = "\n".join(lines[1:])
+                text = rest[5:] if rest.lower().startswith("text:") else rest
+            else:
+                text = raw
+        title = title if title is not None else (q.get("title") or [None])[0]
+        status, _ = money.ingest(text, source=(title or "")[:40], title=title)
+        self.send_html(status)
+
+    def money_page(self):
+        d = money.load()
+        q = self.query()
+        now = money.now()
+        ym = (q.get("m") or [now.strftime("%Y-%m")])[0]
+        try:
+            first = datetime.strptime(ym + "-01", "%Y-%m-%d")
+        except ValueError:
+            first, ym = datetime(now.year, now.month, 1), now.strftime("%Y-%m")
+        prev_m = (first.replace(day=1) - timedelta(days=1)).strftime("%Y-%m")
+        next_m = (first.replace(day=28) + timedelta(days=4)).strftime("%Y-%m")
+        TH_M = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
+        mname = f"{TH_M[first.month]} {first.year + 543}"
+        exp, inc, cats = money.month_summary(d, ym)
+        parts = [self.flash({"saved": "บันทึกแล้ว", "deleted": "ลบแล้ว", "token": "เปลี่ยนรหัสลับแล้ว — อย่าลืมแก้ลิงก์ใน MacroDroid",
+                             "adjusted": "ปรับยอดแล้ว", "learned": "บันทึกแล้ว · จำร้านนี้ไว้ใส่หมวดให้ครั้งหน้า"})]
+        nav_m = (f'<a class="btn gray sm" href="/money?m={prev_m}">‹</a><span class="title">{mname}</span>'
+                 + (f'<a class="btn gray sm" href="/money?m={next_m}">›</a>' if next_m <= now.strftime("%Y-%m") else ""))
+        parts.append(f'<div class="actions" style="margin:0 0 10px">{nav_m}</div>'
+                     f'<div class="card dark sumline"><b>{money.fmt(exp)}<small>จ่าย</small></b>'
+                     f'<b>{money.fmt(inc)}<small>รับ</small></b>'
+                     f'<span class="muted mono">สุทธิ {money.fmt(inc - exp, sign=True)}</span></div>')
+        bal = money.balances(d)
+        wc = []
+        for w, name in money.WALLETS.items():
+            extra = ""
+            if w == "kbank" and d.get("bank_balance_at"):
+                extra = f'<div class="muted">ตามธนาคาร {E(d["bank_balance_at"][5:10].replace("-", "/"))} {E(d["bank_balance_at"][11:16])}</div>'
+            wc.append(f'<div class="card"><div class="muted">{name}</div><b>{money.fmt(bal[w])}</b>{extra}</div>')
+        parts.append(f'<div class="wallets">{"".join(wc)}</div>')
+
+        edit_id = (q.get("edit") or [""])[0]
+        editing = next((it for it in d["items"] if it["id"] == edit_id), None)
+        parts.append(f'<details class="fold" id="form"{" open" if editing else ""} style="margin-top:6px">'
+                     f'<summary>{"แก้ไขรายการ" if editing else "+ เพิ่มรายการเอง"}</summary>{self.money_form(d, editing)}</details>')
+
+        rev = money.needs_review(d)
+        if rev:
+            rows = "".join(self.money_row(it) for it in rev[:20])
+            parts.append(f'<h2>รอใส่หมวด · {len(rev)}</h2><div class="card list">{rows}</div>')
+        if d["inbox"]:
+            rows = "".join(
+                f'<div class="row" style="display:block"><div class="muted mono">{E(x["at"][5:16].replace("T", " "))} · {E(x.get("source") or "")}</div>'
+                f'<div class="raw">{E(x["text"])}</div><div class="actions" style="margin-top:4px">'
+                f'<a class="btn gray sm" href="/money?add_from={E(x["id"])}#form">เพิ่มเอง</a>'
+                f'<form method="post" action="/money/inbox-del"><input type="hidden" name="id" value="{E(x["id"])}">'
+                f'<button class="gray sm">ลบ</button></form></div></div>' for x in d["inbox"][:10])
+            parts.append(f'<h2>อ่านไม่ออก · {len(d["inbox"])}</h2><div class="card note muted" style="padding:9px 16px">'
+                         'ข้อความจากธนาคารที่ระบบยังไม่รู้จักรูปแบบ — ส่งให้ Claude ดูเพื่อสอนระบบได้</div>'
+                         f'<div class="card list">{rows}</div>')
+        if cats:
+            top = max(abs(v) for _, v in cats) or 1
+            rows = "".join(f'<div class="row" style="display:block"><div class="row plain"><span>{E(c)}</span>'
+                           f'<b class="mono" style="font-weight:500">{money.fmt(v)}</b></div>'
+                           f'<div class="barc"><i style="width:{max(0, v) / top * 100:.0f}%"></i></div></div>' for c, v in cats)
+            parts.append(f'<h2>จ่ายตามหมวด</h2><div class="card list">{rows}</div>')
+
+        month_items = [it for it in d["items"] if money.month_key(it) == ym]
+        month_items.sort(key=lambda it: it.get("time", ""), reverse=True)
+        parts.append(f'<h2>รายการ · {len(month_items)}</h2>')
+        if not month_items:
+            parts.append('<div class="card note muted">ยังไม่มีรายการเดือนนี้ — ตั้ง MacroDroid ในหัวข้อ “เชื่อมมือถือ” ด้านล่าง '
+                         'หรือกด “+ เพิ่มรายการเอง”</div>')
+        day = None
+        buf = []
+        for it in month_items + [None]:
+            dd = (it or {}).get("time", "")[:10]
+            if dd != day and buf:
+                parts.append(f'<h2 class="muted" style="font-weight:500">{E(day[8:10])}/{E(day[5:7])}</h2>'
+                             f'<div class="card list">{"".join(buf)}</div>')
+                buf = []
+            if it is None:
+                break
+            day = dd
+            buf.append(self.money_row(it))
+        parts.append(self.money_settings(d))
+        sub = f'{len(rev)} รอใส่หมวด' if rev else ""
+        html_ = page("เงิน", "".join(parts), active="/money", heading="รายรับรายจ่าย", sub=sub)
+        self.send_html(html_)
+
+    def money_row(self, it):
+        k = it.get("kind")
+        a = float(it.get("amount") or 0)
+        if k == "transfer":
+            price = f'<span>{money.fmt(a)}</span>'
+            what = f'{money.WALLETS.get(it.get("wallet"), "")} → {money.WALLETS.get(it.get("to"), "")}'
+        else:
+            plus = k in ("income", "refund")
+            price = f'<span class="{"plus" if plus else "minus"}">{"+" if plus else "-"}{money.fmt(a)}</span>'
+            what = money.WALLETS.get(it.get("wallet"), "")
+        title = it.get("merchant") or it.get("note") or it.get("category") or money.KINDS.get(k, "")
+        tags = ""
+        if k in ("transfer", "refund"):
+            tags += f' <span class="pill">{money.KINDS[k]}</span>'
+        if it.get("category") and it.get("category") != title:
+            tags += f' <span class="pill acc">{E(it["category"])}</span>'
+        if it.get("review"):
+            tags += ' <span class="pill err">ใส่หมวด</span>'
+        note = f' · {E(it["note"])}' if it.get("note") and it.get("note") != title else ""
+        return (f'<a class="row" href="/money?edit={E(it["id"])}#form"><div style="min-width:0">'
+                f'<span class="title">{E(title)}</span>{tags}'
+                f'<div class="muted line2"><span class="mono">{E(it.get("time", "")[11:16])}</span> · {E(what)}{note}</div></div>'
+                f'<div class="price">{price}</div></a>')
+
+    def money_form(self, d, it):
+        q = self.query()
+        new = it is None
+        it = dict(it or {"id": "", "kind": "expense", "amount": "", "wallet": "truemoney", "to": "kbank",
+                         "category": "", "merchant": "", "note": "", "time": money.now().strftime("%Y-%m-%dT%H:%M")})
+        src = next((x for x in d["inbox"] if x["id"] == (q.get("add_from") or [""])[0]), None)
+        if new and src:
+            it.update(wallet="kbank", note="", time=src["at"][:16])
+        amount = "" if it.get("amount") in ("", None) else f'{float(it["amount"]):g}'
+
+        def radio(name, choices, cur):
+            return "".join(f'<label><input type="radio" name="{name}" value="{k}"{" checked" if k == cur else ""}>'
+                           f'<span>{E(v)}</span></label>' for k, v in choices.items())
+
+        def opts(choices, cur, blank=None):
+            o = f'<option value="">{E(blank)}</option>' if blank is not None else ""
+            return o + "".join(f'<option value="{E(k)}"{" selected" if k == cur else ""}>{E(v)}</option>'
+                               for k, v in choices.items())
+        cats = {c: c for c in d["expense_cats"]}
+        cats.update({c: c for c in d["income_cats"]})
+        if it.get("category") and it["category"] not in cats:
+            cats[it["category"]] = it["category"]
+        chips = ""
+        if new:
+            chips = ('<div class="chips">'
+                     '<button type="button" onclick="pre(\'expense\',\'truemoney\',\'อาหาร\',\'เซเว่น\')">🏪 เซเว่น (TrueMoney)</button>'
+                     '<button type="button" onclick="pre(\'expense\',\'cash\',\'อาหาร\',\'\')">💵 จ่ายเงินสด</button>'
+                     '<button type="button" onclick="pre(\'transfer\',\'kbank\',\'\',\'\',\'cash\')">🏧 กด ATM</button>'
+                     '<button type="button" onclick="pre(\'transfer\',\'kbank\',\'\',\'\',\'truemoney\')">↗ เติม TrueMoney</button></div>')
+        delete = ""
+        learn = ""
+        raw = ""
+        if not new:
+            delete = (f'<form method="post" action="/money/delete" onsubmit="return confirm(\'ลบรายการนี้?\')" style="margin-top:8px">'
+                      f'<input type="hidden" name="id" value="{E(it["id"])}"><button class="red sm">ลบรายการนี้</button></form>')
+            if it.get("merchant"):
+                learn = (f'<label><input type="checkbox" name="learn" value="1"{" checked" if it.get("review") else ""}>'
+                         f'จำไว้ — ครั้งหน้า “{E(it["merchant"])}” ใส่หมวดนี้ให้เอง</label>')
+            if it.get("raw"):
+                raw = f'<details><summary>ข้อความจากธนาคาร</summary><div class="raw">{E(it["raw"])}</div></details>'
+        elif src:
+            raw = f'<div class="raw">{E(src["text"])}</div><input type="hidden" name="inbox_id" value="{E(src["id"])}">'
+        return f'''<div class="card"><form method="post" action="/money/save" id="mf">{chips}
+<input type="hidden" name="id" value="{E(it["id"])}">{raw}
+<div class="seg2" style="margin-top:8px">{radio("kind", money.KINDS, it.get("kind"))}</div>
+<div class="two" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr)"><div><label>จำนวนเงิน (บาท)</label><input name="amount" type="number" step="0.01" min="0" inputmode="decimal" required value="{amount}"></div>
+<div><label>เวลา</label><input name="time" type="datetime-local" value="{E((it.get("time") or "")[:16])}"></div>
+<div><label>กระเป๋า</label><select name="wallet">{opts(money.WALLETS, it.get("wallet"))}</select></div>
+<div id="tow"><label>ย้ายไปกระเป๋า</label><select name="to">{opts(money.WALLETS, it.get("to") or "cash")}</select></div>
+<div id="catw"><label>หมวด</label><select name="category">{opts(cats, it.get("category"), "— เลือก —")}</select></div>
+<div><label>ร้าน / ชื่อ</label><input name="merchant" value="{E(it.get("merchant", ""))}"></div></div>
+<label>โน้ต</label><input name="note" value="{E(it.get("note", ""))}">{learn}
+<div class="actions"><button>บันทึก</button>{"" if new else '<a class="btn gray" href="/money">ยกเลิก</a>'}</div></form>{delete}</div>
+<script>
+(function(){{var f=document.getElementById('mf');
+function sync(){{var k=f.querySelector('input[name=kind]:checked');k=k?k.value:'expense';
+document.getElementById('tow').style.display=k=='transfer'?'':'none';
+document.getElementById('catw').style.display=k=='transfer'?'none':'';}}
+f.addEventListener('change',sync);sync();
+window.pre=function(k,w,c,n,to){{f.querySelector('input[name=kind][value='+k+']').checked=true;f.wallet.value=w;
+if(to)f.to.value=to;f.category.value=c||'';if(n!==undefined)f.merchant.value=n;sync();f.amount.focus();}};}})();
+</script>'''
+
+    def money_settings(self, d):
+        cfg = settings.load()
+        url = (cfg.get("public_url") or "https://<ลิงก์ Hub>").rstrip("/") + "/money/in?k=" + d["token"]
+        last = d.get("last_in")
+        last = (f'<span class="pill ok">มือถือส่งมาล่าสุด {E(last[5:16].replace("T", " "))}</span>' if last
+                else '<span class="pill">ยังไม่เคยได้รับข้อมูลจากมือถือ</span>')
+        rules = "\n".join(f'{r["kw"]} = {r["cat"]}' for r in d["rules"])
+        wal = "".join(f'<div><label>{name}</label><input name="{w}" type="number" step="0.01" placeholder="{money.balances(d)[w]:.2f}"></div>'
+                      for w, name in money.WALLETS.items())
+        return f'''<details class="fold"><summary>เชื่อมมือถือ (MacroDroid)</summary><div class="card">
+<p style="margin-top:0">{last}</p>
+<ol class="steps"><li>ติดตั้ง <b>MacroDroid</b> จาก Google Play (ผู้พัฒนา ArloSoft) · ให้สิทธิ์ <b>การเข้าถึงการแจ้งเตือน</b> อย่างเดียว</li>
+<li>กด <b>Add Macro</b> → Trigger: <b>Notification</b> → <b>Notification Received</b> → เลือกแอป <b>Messages</b> และ <b>LINE</b></li>
+<li>Action: <b>Web Interactions</b> → <b>HTTP Request</b> · Method <b>POST</b> · URL ด้านล่าง</li>
+<li>Body (Content type <code>text/plain</code>):<div class="raw">title: [notification_title]<br>text: [notification]</div></li>
+<li>บันทึก macro แล้วไปที่ ตั้งค่า Android → แบตเตอรี่ → MacroDroid → <b>ไม่จำกัด</b></li></ol>
+<label>URL สำหรับ MacroDroid (มีรหัสลับ — อย่าแชร์)</label><input readonly value="{E(url)}" onclick="this.select()">
+<p class="muted">ระบบรับเฉพาะข้อความที่มาจาก KBank · ข้อความอื่นทิ้งทันทีไม่เก็บ · OTP ไม่เก็บ · เลขบัญชีเก็บแค่ 4 ตัวท้าย</p>
+<form method="post" action="/money/token" onsubmit="return confirm('เปลี่ยนรหัสลับ? ต้องแก้ URL ใน MacroDroid ใหม่')" class="actions">
+<button class="gray sm">เปลี่ยนรหัสลับ</button></form></div></details>
+<details class="fold"><summary>ปรับยอดกระเป๋า</summary><form method="post" action="/money/adjust" class="card">
+<p class="muted" style="margin-top:0">ใส่ยอดเงินจริงตอนนี้ (เว้นว่าง = ไม่เปลี่ยน) · KBank จะปรับตามยอดที่ธนาคารแจ้งให้เองทุกครั้ง</p>
+<div class="two" style="grid-template-columns:repeat(3,1fr)">{wal}</div>
+<div class="actions"><button>บันทึก</button></div></form></details>
+<details class="fold"><summary>หมวด · จำร้าน</summary><form method="post" action="/money/options" class="card">
+<label style="margin-top:0">หมวดรายจ่าย (คั่นด้วย ,)</label><input name="expense_cats" value="{E(", ".join(d["expense_cats"]))}">
+<label>หมวดรายรับ (คั่นด้วย ,)</label><input name="income_cats" value="{E(", ".join(d["income_cats"]))}">
+<label>ใส่หมวดให้อัตโนมัติ · บรรทัดละ 1 แบบ <code>คำในชื่อร้าน = หมวด</code> (บนสุดมาก่อน)</label>
+<textarea name="rules" rows="8">{E(rules)}</textarea>
+<div class="actions"><button>บันทึก</button></div></form></details>'''
+
+    def money_post(self, path, f):
+        if path == "/money/save":
+            try:
+                amount = round(abs(float(f.get("amount") or 0)), 2)
+            except ValueError:
+                amount = 0
+            if not amount:
+                return self.redirect("/money")
+            kind = f.get("kind") if f.get("kind") in money.KINDS else "expense"
+            wallet = f.get("wallet") if f.get("wallet") in money.WALLETS else "cash"
+            to = f.get("to") if kind == "transfer" and f.get("to") in money.WALLETS else ""
+            if kind == "transfer" and to == wallet:
+                kind, to = "expense", ""
+            try:
+                t = datetime.strptime(f.get("time", ""), "%Y-%m-%dT%H:%M").strftime("%Y-%m-%dT%H:%M")
+            except ValueError:
+                t = money.now().strftime("%Y-%m-%dT%H:%M")
+            cat = "" if kind == "transfer" else f.get("category", "").strip()[:40]
+            row = {"kind": kind, "amount": amount, "wallet": wallet, "to": to, "category": cat,
+                   "merchant": f.get("merchant", "").strip()[:60], "note": f.get("note", "").strip()[:200],
+                   "time": t, "review": False}
+            msg = {"m": "saved"}
+
+            def fn(d):
+                item = next((x for x in d["items"] if x["id"] == f.get("id")), None)
+                if item:
+                    item.update(row)
+                else:
+                    row.update(id=os.urandom(4).hex(), auto=False, source="", raw="")
+                    d["items"].insert(0, row)
+                if f.get("inbox_id"):
+                    d["inbox"] = [x for x in d["inbox"] if x["id"] != f["inbox_id"]]
+                if f.get("learn") == "1" and row["merchant"] and cat:
+                    money.learn(d, row["merchant"], cat)
+                    msg["m"] = "learned"
+            money.update(fn)
+            return self.redirect(f"/money?m={t[:7]}&msg={msg['m']}")
+        if path == "/money/delete":
+            money.update(lambda d: d.update(items=[x for x in d["items"] if x["id"] != f.get("id")]))
+            return self.redirect("/money?msg=deleted")
+        if path == "/money/inbox-del":
+            money.update(lambda d: d.update(inbox=[x for x in d["inbox"] if x["id"] != f.get("id")]))
+            return self.redirect("/money")
+        if path == "/money/token":
+            money.update(lambda d: d.update(token=os.urandom(16).hex()))
+            return self.redirect("/money?msg=token")
+        if path == "/money/adjust":
+            def fn(d):
+                bal = money.balances(d)
+                for w in money.WALLETS:
+                    try:
+                        want = float(f.get(w, "").replace(",", ""))
+                    except ValueError:
+                        continue
+                    d["wallets"][w]["opening"] = round(float(d["wallets"][w].get("opening") or 0) + want - bal[w], 2)
+            money.update(fn)
+            return self.redirect("/money?msg=adjusted")
+        if path == "/money/options":
+            def split(s):
+                out = []
+                for x in (s or "").split(","):
+                    x = x.strip()[:40]
+                    if x and x not in out:
+                        out.append(x)
+                return out
+
+            def fn(d):
+                d["expense_cats"] = split(f.get("expense_cats")) or list(money.EXPENSE_CATS)
+                d["income_cats"] = split(f.get("income_cats")) or list(money.INCOME_CATS)
+                rules = []
+                for line in f.get("rules", "").splitlines():
+                    if "=" in line:
+                        kw, cat = line.split("=", 1)
+                        if kw.strip() and cat.strip():
+                            rules.append({"kw": kw.strip()[:40], "cat": cat.strip()[:40]})
+                d["rules"] = rules
+            money.update(fn)
+            return self.redirect("/money?msg=saved")
+        self.send_html("not found", 404)
 
     # ---------- likes ----------
     def likes_page(self):

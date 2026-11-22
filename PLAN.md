@@ -11,6 +11,7 @@
 ```
 https://<ip>.sslip.io  (Caddy ทำ https → 127.0.0.1:8080)
   /           Hub — การ์ดสรุปทุกส่วน
+  /money      รายรับรายจ่าย (กระเป๋า KBank · TrueMoney · เงินสด) · มือถือส่งแจ้งเตือนธนาคารมาที่ /money/in
   /recorder   อัดไลฟ์ TikTok + Instagram
   /recorder/settings  ตั้งค่าอัดไลฟ์ (บัญชีที่เฝ้า, คุกกี้, รอบเช็ก, การลบไฟล์)
   /subs       Subscription tracker
@@ -24,6 +25,7 @@ https://<ip>.sslip.io  (Caddy ทำ https → 127.0.0.1:8080)
 |---|---|
 | `recorder/main.py` | ลูปหลัก: เช็กไลฟ์, cleanup ทุกชม., เตือน subscription ทุกชม., self-restart หลังอัปเดต |
 | `recorder/web.py` | หน้าเว็บทั้งหมด + login (cookie `tkrec`, 30 วัน) |
+| `recorder/money.py` | รายรับรายจ่าย: อ่านแจ้งเตือน KBank (SMS บัตร + LINE KBank Live), กันซ้ำด้วยยอดคงเหลือ, ทิ้ง OTP, ปิดเลขบัญชีเหลือ 4 ตัว, กฎจำร้าน → หมวด |
 | `recorder/subs.py` | ข้อมูล subscription, ยอดรวม, เลื่อนวันต่ออายุ, ส่งเตือน |
 | `recorder/likes.py` | เชื่อม YouTube (OAuth device flow), เช็กเพลย์ลิสต์ LL ทุก N นาทีใน thread แยก, ส่ง ntfy พร้อมลิงก์ x.com/intent/post |
 | `recorder/tiktok.py` / `instagram.py` / `record.py` | ตรวจไลฟ์และอัด · IG ใช้ reels tray 1 request ต่อรอบ (บัญชีสำรองต้องติดตามเป้าหมาย), เจอ 429 พักอัตโนมัติ 5→60 นาที |
@@ -34,6 +36,7 @@ https://<ip>.sslip.io  (Caddy ทำ https → 127.0.0.1:8080)
 `/var/lib/live-recorder/`
 - `settings.json` — รหัสผ่าน, ntfy topic, บัญชีที่เฝ้า, คุกกี้
 - `subscriptions.json` — รายการ subscription (ครั้งแรกจะสร้างข้อมูลตัวอย่างให้ มีป้าย "ตัวอย่าง")
+- `money.json` — รายการรับจ่าย, กระเป๋า, หมวด, กฎจำร้าน, รหัสลับ webhook, ข้อความที่อ่านไม่ออก (inbox)
 - `likes.json` — Google client id/secret, token, คลิปที่ไลค์และสถานะ (รอโพสต์/โพสต์แล้ว/ข้าม)
 - `recordings/` — ไลฟ์ที่อัดไว้
 
@@ -47,7 +50,16 @@ push ขึ้น `main` → เซิร์ฟเวอร์เช็ก GitHu
 - เตือนก่อนต่ออายุ N วัน (ตั้งได้, ค่าเริ่ม 3) · สถานะ "จะยกเลิก" ได้ข้อความเตือนให้ไปยกเลิก
 - เลยวันต่ออายุแล้ว ระบบเลื่อนไปรอบถัดไปให้เอง (เฉพาะ "ใช้อยู่")
 
+## รายรับรายจ่าย (/money)
+- มือถือ Android + MacroDroid: Notification Received (Messages + LINE) → HTTP POST `/money/in?k=<รหัสลับ>` body `title: [notification_title]\ntext: [notification]`
+- รับเฉพาะ title ที่มีคำว่า KBank (SMS "KBank", LINE "KBank Live") · อื่น ๆ ทิ้งไม่เก็บ · OTP ทิ้ง
+- SMS รูดบัตร KBank: `ชำระ 3,522.58บ บัตร x-5676@ร้าน 18:47น เหลือ 434.76บ` (มี "คืนเงิน" ด้วย) — บัตร x-5676 ผูกบัญชี x1765 = กระเป๋า KBank ใบเดียว
+- LINE KBank Live ใช้กับโอนเข้า/ออก · ยังไม่เห็นข้อความแจ้งเตือนจริง — ถ้าอ่านไม่ออกจะไปอยู่ "อ่านไม่ออก" ให้ดูรูปแบบแล้วสอน parser
+- กระเป๋า: KBank (ยอดตามธนาคารอัตโนมัติ), TrueMoney (กรอกเอง/ปุ่มเซเว่น), เงินสด · โอนไป TrueMoney/ATM = "ย้ายเงิน" ไม่นับรายจ่าย
+- LINE Pay ไม่ทำกระเป๋า — เติมเงินเข้า LINE Pay นับเป็นรายจ่าย "เดินทาง" (ใช้แค่ BTS)
+
 ## สิ่งที่จะทำต่อ
+0. รายรับรายจ่าย: รอแคปแจ้งเตือน LINE KBank Live จริง + แจ้งเตือน TrueMoney (ถ้ามี) แล้วปรับ parser
 1. ใส่ราคา/วันต่ออายุจริงใน /subs ที่ยังเป็นป้าย "ตัวอย่าง" (Claude MAX, IFTTT, TKREC, Oracle Cloud)
    — ทำแล้ว: โดเมน spongelotus.work ($10.20/ปี ต่ออายุ 9 ต.ค. 2027), Cloudflare R2 (~$0.15/เดือน ตัด 7 ทุกเดือน), GitHub (ฟรี)
 2. ยกเลิก IFTTT (฿2,100/ปี) แล้วแก้สถานะใน /subs — `/likes` เชื่อม YouTube ใช้งานได้แล้ว (พ.ย. 2026)
