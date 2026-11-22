@@ -223,7 +223,11 @@ def is_bank(title, text):
     """Only KBank messages are read; anything else from the phone is dropped unseen."""
     if "KBANK" in (title or "").upper().replace(" ", ""):
         return True
-    return bool(re.search(r"(ชำระ|คืนเงิน)\s*[\d,]+\.\d{2}\s*บ\s*บัตร\s*x", norm(text)))
+    t = norm(text)
+    # LINE may group/rename the notification (title "LINE" or a count) — still accept KBank Live cards by their text
+    if "KBANK" in t.upper().replace(" ", "") or re.search(r"รายการ(เงินเข้า|โอน/ถอน|ชำระ|จ่าย)", t):
+        return True
+    return bool(re.search(r"(ชำระ|คืนเงิน)\s*[\d,]+\.\d{2}\s*บ\s*บัตร\s*x", t))
 
 
 def ingest(text, source="", received=None, title=None):
