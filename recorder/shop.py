@@ -265,6 +265,7 @@ def jobs(d, md=None):
     by_id = {it["id"]: it for it in md.get("items", [])}
     gdates = set(d.get("gallery_dates") or [])
     today = money.now().date().isoformat()
+    auto = auto_links(d, md, today)
     out = []
     for r in d["rows"]:
         j = dict(r)
@@ -276,7 +277,8 @@ def jobs(d, md=None):
         j["guess_self"] = not status and r["date"] in gdates
         j["status"] = status or "rent"
         j["future"] = r["date"] > today
-        links = [by_id[i] for i in meta.get("links", []) if i in by_id]
+        j["auto"] = "links" not in meta and r["key"] in auto
+        links = [by_id[i] for i in (meta["links"] if "links" in meta else auto.get(r["key"], [])) if i in by_id]
         j["links"] = links
         inc = sum(float(x["amount"]) for x in links if x.get("kind") == "income")
         exp = sum(float(x["amount"]) * (-1 if x.get("kind") == "refund" else 1)
@@ -426,3 +428,108 @@ def suggest(j, cands):
             if abs((t - jd).days) <= 1 and ("ส่งให้" in text or "คืนกล้อง" in text or "ลูกค้า" in text):
                 out.add(it["id"])
     return out
+
+
+# ---------- automatic matching (jobs never saved by hand) ----------
+SHIP_OUT = ("ส่งให้",)
+SHIP_BACK = ("คืนกล้อง", "ส่งถึงบัว", "ส่งคืน")
+SHIP_SKIP = ("ส่งของให้ตัวเอง",)
+
+
+def _is_delivery(it):
+    text = f'{it.get("merchant", "")} {it.get("category", "")}'.lower()
+    return it.get("kind") in ("expense", "refund") and (
+        "messenger" in text or "grabexpress" in text or "lalamove" in text)
+
+
+def _day(it):
+    return datetime.fromisoformat(it["time"][:16]).date()
+
+
+def auto_links(d, md, today):
+    """Match money items to jobs that were never saved by hand (from actual_from on):
+    * a transfer in of the expected price → nearest job (customer pays up to ~10 days before, or a few after)
+    * GrabExpress "ส่งให้ ..." → the job on that day or within 2 days after (sending the gear out)
+    * GrabExpress "ลูกค้าส่งคืนกล้อง" / "ส่งถึงบัว" → the job on that day or up to 3 days before (gear coming back)
+    Returns {job key: [money ids]}."""
+    start = d.get("actual_from") or ""
+    if not start:
+        return {}
+    taken = set()
+    for m in d["jobs"].values():
+        taken.update(m.get("links", []))
+    open_jobs = []
+    for r in d["rows"]:
+        meta = d["jobs"].get(r["key"], {})
+        if "links" in meta or meta.get("status") == "self" or r["date"] < start or r["date"] > today:
+            continue
+        items = meta.get("items") or r["items"]
+        price = float(meta["price"]) if meta.get("price") not in (None, "") else table_price(d, items) * r["days"]
+        open_jobs.append({"key": r["key"], "date": date.fromisoformat(r["date"]), "days": r["days"],
+                          "price": price, "out": 0, "back": 0})
+    if not open_jobs:
+        return {}
+    res = {j["key"]: [] for j in open_jobs}
+    lo = min(j["date"] for j in open_jobs) - timedelta(days=10)
+    pool = []
+    for it in md.get("items", []):
+        if it["id"] in taken:
+            continue
+        try:
+            t = _day(it)
+        except Exception:
+            continue
+        if t >= lo:
+            pool.append((t, it))
+    pool.sort(key=lambda x: x[1]["time"])
+    # money in: exact price, closest date; each job takes one transfer
+    paid = set()
+    for j in sorted(open_jobs, key=lambda j: j["date"]):
+        best = None
+        for t, it in pool:
+            if it.get("kind") != "income" or it["id"] in paid or abs(float(it["amount"]) - j["price"]) > 0.5:
+                continue
+            gap = (t - j["date"]).days
+            if -10 <= gap <= j["days"] + 3 and (best is None or abs(gap) < abs(best[0])):
+                best = (gap, it)
+        if best:
+            paid.add(best[1]["id"])
+            res[j["key"]].append(best[1]["id"])
+            continue
+        # paid in two transfers (e.g. 1,400 + 650)
+        near = [(t, it) for t, it in pool if it.get("kind") == "income" and it["id"] not in paid
+                and -10 <= (t - j["date"]).days <= j["days"] + 3]
+        pair = None
+        for a_i in range(len(near)):
+            for b_i in range(a_i + 1, len(near)):
+                x, y = near[a_i], near[b_i]
+                if abs(float(x[1]["amount"]) + float(y[1]["amount"]) - j["price"]) <= 0.5:
+                    gap = abs((x[0] - j["date"]).days) + abs((y[0] - j["date"]).days)
+                    if pair is None or gap < pair[0]:
+                        pair = (gap, x[1], y[1])
+        if pair:
+            for it in pair[1:]:
+                paid.add(it["id"])
+                res[j["key"]].append(it["id"])
+    # deliveries
+    for t, it in pool:
+        if not _is_delivery(it):
+            continue
+        note = it.get("note", "")
+        if any(x in note for x in SHIP_SKIP):
+            continue
+        if any(x in note for x in SHIP_BACK):
+            fits = [j for j in open_jobs if 0 <= (t - j["date"]).days <= j["days"] + 2]
+            side = "back"
+        elif any(x in note for x in SHIP_OUT):
+            fits = [j for j in open_jobs if 0 <= (j["date"] - t).days <= 2]
+            side = "out"
+        else:
+            continue
+        if not fits:
+            continue
+        # nearest date first, then the job with fewer trips on that side (two jobs on one day)
+        j = min(fits, key=lambda j: (abs((t - j["date"]).days), j[side]))
+        j[side] += 1
+        res[j["key"]].append(it["id"])
+    return {k: v for k, v in res.items() if v}

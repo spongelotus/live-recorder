@@ -70,7 +70,7 @@ class ShopPages:
         if todo:
             rows = "".join(self.shop_job(j, d, md) for j in todo)
             parts.append(f'<h2>รอเช็ก · {len(todo)} <span class="muted" style="font-weight:400">· '
-                         f'ผูกรายการเงิน หรือยืนยันว่าใช้เอง</span></h2><div class="card list">{rows}</div>')
+                         f'ไม่เจอยอดโอนที่ตรงราคา หรือยืนยันว่าใช้เอง</span></h2><div class="card list">{rows}</div>')
 
         # ---- months ----
         if s["months"]:
@@ -113,7 +113,9 @@ class ShopPages:
         if j["future"]:
             tags += ' <span class="pill acc">จองแล้ว</span>'
         if j["needs_link"]:
-            tags += ' <span class="pill err">ยังไม่ผูกเงิน</span>'
+            tags += ' <span class="pill err">ไม่เจอยอดโอน</span>'
+        elif j["auto"]:
+            tags += ' <span class="pill ok">จับคู่อัตโนมัติ</span>'
         if j["status"] == "self":
             price = '<span class="muted">-</span>'
         else:
@@ -122,8 +124,8 @@ class ShopPages:
         used = shop.used_links(d, j["key"])
         cands = shop.candidates(j, md, used)
         linked = set(meta.get("links", []))
-        if "links" not in meta and j["status"] == "rent" and not j["future"]:
-            linked = shop.suggest(j, cands)  # first time: pre-tick the likely ones (saved only after "บันทึก")
+        if "links" not in meta:
+            linked = {x["id"] for x in j["links"]}  # automatic match (saved only after "บันทึก")
         boxes = []
         for it in cands:
             k = it.get("kind")
