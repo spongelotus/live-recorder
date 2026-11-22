@@ -182,6 +182,13 @@ details.fold[open]>summary::before{transform:rotate(90deg)}
 .seg2 input{display:none}.seg2 span{display:block;padding:7px 4px;border-radius:999px;cursor:pointer;font-size:14px}
 .seg2 input:checked+span{background:var(--dark);color:#fff}
 .barc{height:6px;border-radius:9px;background:var(--soft2);margin-top:5px;overflow:hidden}.barc i{display:block;height:100%;background:var(--acc)}
+.sum2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 6px}
+.sum2 .card{margin:0;padding:14px 16px;display:block}.sum2 .lbl{font-size:13px;font-weight:500;opacity:.85}
+.sum2 b{display:block;font-size:clamp(24px,7vw,32px);font-weight:400;letter-spacing:-.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sum2 .inc{background:#dff3c4;color:#2f6b0f}.sum2 .exp{background:#ffe0d8;color:#b2321d}
+.netline{font-size:14px;color:var(--ink2);margin:0 4px 10px}.netline b{font-family:var(--mono);font-weight:500;margin-left:4px}
+.netline .pos{color:#2f6b0f}.netline .neg{color:#b2321d}
+.card.list>a.catrow{display:block}a.catrow .row.plain{display:flex;width:100%}a.catrow:hover{background:var(--soft)}
 .dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:8px;vertical-align:-1px}
 .barc{height:8px}
 .raw{font-family:var(--mono);font-size:12px;background:var(--soft);border-radius:12px;padding:8px 10px;margin:6px 0;word-break:break-word}
@@ -795,9 +802,12 @@ class Handler(BaseHTTPRequestHandler):
         nav_m = (f'<a class="btn gray sm" href="/money?m={prev_m}">‹</a><span class="title">{mname}</span>'
                  + (f'<a class="btn gray sm" href="/money?m={next_m}">›</a>' if next_m <= now.strftime("%Y-%m") else ""))
         parts.append(f'<div class="actions" style="margin:0 0 10px">{nav_m}</div>'
-                     f'<div class="card dark sumline"><b>{money.fmt(exp)}<small>จ่าย</small></b>'
-                     f'<b>{money.fmt(inc)}<small>รับ</small></b>'
-                     f'<span class="muted mono">สุทธิ {money.fmt(inc - exp, sign=True)}</span></div>')
+                     f'<div class="sum2"><a class="card inc" href="/money?m={ym}&cat=__income#list">'
+                     f'<div class="lbl">รายรับ</div><b>+{money.fmt(inc)}</b></a>'
+                     f'<a class="card exp" href="/money?m={ym}&cat=__expense#list">'
+                     f'<div class="lbl">รายจ่าย</div><b>-{money.fmt(exp)}</b></a></div>'
+                     f'<div class="netline">สุทธิเดือนนี้ <b class="{"pos" if inc - exp >= 0 else "neg"}">'
+                     f'{money.fmt(inc - exp, sign=True)}</b></div>')
         bal = money.balances(d)
         wc = []
         for w, name in money.WALLETS.items():
@@ -828,20 +838,39 @@ class Handler(BaseHTTPRequestHandler):
             parts.append(f'<h2>อ่านไม่ออก · {len(d["inbox"])}</h2><div class="card note muted" style="padding:9px 16px">'
                          'ข้อความจากธนาคารที่ระบบยังไม่รู้จักรูปแบบ — ส่งให้ Claude ดูเพื่อสอนระบบได้</div>'
                          f'<div class="card list">{rows}</div>')
+        fcat = (q.get("cat") or [""])[0]
         if cats:
             top = max(abs(v) for _, v in cats) or 1
             def cat_line(c, v):
                 bg, fg = money.cat_color(d, c)
-                return (f'<div class="row" style="display:block"><div class="row plain">'
+                on = " style=\"background:var(--soft)\"" if c == fcat else ""
+                return (f'<a class="row catrow" href="/money?m={ym}&cat={urllib.parse.quote(c)}#list"{on}><div class="row plain">'
                         f'<span><i class="dot" style="background:{bg};box-shadow:inset 0 0 0 1px {fg}33"></i>{E(c)}</span>'
                         f'<b class="mono" style="font-weight:500">{money.fmt(v)}</b></div>'
-                        f'<div class="barc"><i style="width:{max(0, v) / top * 100:.0f}%;background:{"#bdbcb5" if bg == money.GREY[0] else bg}"></i></div></div>')
+                        f'<div class="barc"><i style="width:{max(0, v) / top * 100:.0f}%;background:{"#bdbcb5" if bg == money.GREY[0] else bg}"></i></div></a>')
             rows = "".join(cat_line(c, v) for c, v in cats)
-            parts.append(f'<h2>จ่ายตามหมวด</h2><div class="card list">{rows}</div>')
+            parts.append(f'<h2>จ่ายตามหมวด <span class="muted" style="font-weight:400">· แตะหมวดเพื่อดูรายการ</span></h2>'
+                         f'<div class="card list">{rows}</div>')
 
         month_items = [it for it in d["items"] if money.month_key(it) == ym]
         month_items.sort(key=lambda it: it.get("time", ""), reverse=True)
-        parts.append(f'<h2>รายการ · {len(month_items)}</h2>')
+        if fcat:
+            def keep(it):
+                k = it.get("kind")
+                if fcat == "__income":
+                    return k == "income"
+                if fcat == "__expense":
+                    return k in ("expense", "refund")
+                if fcat == "ยังไม่ใส่หมวด":
+                    return k in ("expense", "refund") and not it.get("category")
+                return it.get("category") == fcat and k != "transfer"
+            month_items = [it for it in month_items if keep(it)]
+            label = {"__income": "รายรับ", "__expense": "รายจ่าย"}.get(fcat, fcat)
+            tot = sum(float(it["amount"]) * (-1 if it["kind"] == "refund" else 1) for it in month_items)
+            parts.append(f'<h2 id="list">{E(label)} · {len(month_items)} รายการ · {money.fmt(tot)} '
+                         f'<a class="btn gray sm" style="margin-left:6px" href="/money?m={ym}#list">✕ ดูทั้งหมด</a></h2>')
+        else:
+            parts.append(f'<h2 id="list">รายการ · {len(month_items)}</h2>')
         if not month_items:
             parts.append('<div class="card note muted">ยังไม่มีรายการเดือนนี้ — ตั้ง MacroDroid ในหัวข้อ “เชื่อมมือถือ” ด้านล่าง '
                          'หรือกด “+ เพิ่มรายการเอง”</div>')
