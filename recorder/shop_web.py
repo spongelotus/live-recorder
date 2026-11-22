@@ -20,7 +20,9 @@ SHOP_CSS = """<style>
 .jt .nm{text-align:left}.jt td.d{font-family:var(--mono);font-size:12px;color:var(--muted)}
 .jt td.n{text-align:right;font-family:var(--mono);font-size:12px}.jt td.p{font-weight:600}
 .jt .est{color:#a3a29c}.jt td.warn{color:#b2321d;font-family:var(--sans);font-size:11px}
-.jt .eq{font-size:10.5px;color:var(--muted);margin-left:5px}
+.jt .eq{margin-left:5px}.jt .eq i{font-style:normal;font-size:10px;font-weight:500;border-radius:5px;padding:1px 5px;margin-right:3px}
+.q-cam{background:#e1ddff;color:#3924ba}.q-l100{background:#ffd6f1;color:#a3127a}.q-l70{background:#ffdcc9;color:#c2410c}
+.jt tr.self .eq i,.jt tr.fut .eq i{opacity:.55}
 .jt .tg{font-size:10.5px;background:var(--soft2);border-radius:6px;padding:1px 5px;margin-right:4px}.jt .tg.warn{background:#ffeec2;color:#7a5200}
 .jt tr.self td,.jt tr.fut td{color:#a3a29c}.jt tr.self td.nm{text-decoration:none}
 .jt tbody tr{cursor:pointer}.jt tbody tr:hover td{background:var(--soft)}
@@ -128,7 +130,7 @@ class ShopPages:
             return f'<td class="n{"" if actual else " est"}">{money.fmt(round(v)).replace("฿", "")}</td>'
         rows = []
         for j in js:
-            items = "+".join(shop.CODE[x] for x in j["items"]) or "?"
+            items = "".join(f'<i class="q-{x}">{shop.CODE[x]}</i>' for x in j["items"]) or "?"
             cls, tag = "", ""
             if j["status"] == "self":
                 cls, tag = "self", '<span class="tg">ใช้เอง</span>'
