@@ -175,6 +175,7 @@ details.fold[open]>summary::before{transform:rotate(90deg)}
 .big small{font-size:15px;color:var(--muted);letter-spacing:0;font-weight:400;margin-left:4px}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
 .stat{background:rgba(255,255,255,.08);border-radius:14px;padding:8px 12px;min-width:0;container-type:inline-size}
+.stat b.nx{font-size:15px;line-height:1.3;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;padding:2px 0}
 .stat b{display:block;font-size:clamp(18px,22cqi,34px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.1;font-weight:300;letter-spacing:-.03em}.stat span{font-size:12px;color:#a9a9a4}
 /* money */
 .plus{color:#3f7a12}.minus{color:var(--ink)}
@@ -582,14 +583,15 @@ class Handler(ShopPages, BaseHTTPRequestHandler):
         m_exp, _, _ = money.month_summary(md, now.strftime("%Y-%m"))
         m_bal = money.balances(md)
         greet = "อรุณสวัสดิ์" if now.hour < 12 else "สวัสดีตอนบ่าย" if now.hour < 18 else "สวัสดีตอนเย็น"
-        nxt = (f'{E(up[0][1]["name"])} {"วันนี้" if up[0][0] == 0 else f"อีก {up[0][0]} วัน"}' if up else "ไม่มีใน 30 วัน")
+        nxt = E(up[0][1]["name"]) if up else "ไม่มีใน 30 วัน"
+        nxt_when = ("ตัดบัตรวันนี้" if up[0][0] == 0 else f"ตัดบัตรอีก {up[0][0]} วัน") if up else "ตัดบัตรครั้งถัดไป"
         summary = (f'<div class="card dark wide"><p class="hello">{greet}, Bua</p>'
                    f'<div class="muted">{now.strftime("%A %d %B %Y · %H:%M")}</div>'
                    f'<div class="stats" style="margin-top:10px">'
                    f'<div class="stat"><b>{money.fmt(round(m_exp))}</b><span>จ่ายเดือนนี้</span></div>'
                    f'<div class="stat"><b>{money.fmt(round(sum(m_bal.values())))}</b><span>เงินรวมทุกกระเป๋า</span></div>'
                    f'<div class="stat"><b>{subs.fmt_money(month)}</b><span>subscriptions / เดือน</span></div>'
-                   f'<div class="stat"><b class="clip" style="font-size:15px;padding:3px 0">{nxt}</b><span>ตัดบัตรครั้งถัดไป</span></div>'
+                   f'<div class="stat"><b class="nx">{nxt}</b><span>{nxt_when}</span></div>'
                    f'<div class="stat"><b>{len(live)}</b><span>กำลังอัดไลฟ์</span></div>'
                    f'<div class="stat"><b>{len(pend)}</b><span>คลิปรอโพสต์ X</span></div>'
                    f'</div></div>')
