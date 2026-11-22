@@ -54,6 +54,8 @@ CSS = """
 --sans:"Geist","Anuphan",system-ui,-apple-system,"Segoe UI",sans-serif;
 --mono:"Geist Mono","Anuphan",ui-monospace,Menlo,monospace;color-scheme:light}
 .k-rec{--acc:var(--rec);--acc-ink:var(--rec-ink)}.k-subs{--acc:var(--subs);--acc-ink:var(--subs-ink)}
+.pill.cyc-monthly{background:#cfe6ff;color:#0b4f7c}.pill.cyc-yearly{background:#e6dcff;color:#5130b8}
+.pill.cyc-usage{background:#ffe1c2;color:#8a4b00}.pill.cyc-free{background:#dff3c4;color:#2f6b0f}
 .k-likes{--acc:var(--likes);--acc-ink:var(--likes-ink)}.k-money{--acc:var(--money);--acc-ink:var(--money-ink)}
 *{box-sizing:border-box}html,body{margin:0;overflow-x:clip}
 body{background:var(--canvas);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -662,11 +664,11 @@ class Handler(BaseHTTPRequestHandler):
         if it.get("cycle") == "free":
             price, per = "ฟรี", ""
         elif not it.get("price"):
-            price, per = "฿0", cycle
+            price, per = "฿0", ""
         elif it.get("currency") == "USD":
-            price, per = f'${float(it["price"]):,.2f}', f'≈ {subs.fmt_money(thb)} · {cycle}'
+            price, per = f'${float(it["price"]):,.2f}', f'≈ {subs.fmt_money(thb)}'
         else:
-            price, per = subs.fmt_money(float(it["price"])), cycle
+            price, per = subs.fmt_money(float(it["price"])), ""
         n = subs.days_left(it)
         when = ""
         if n is not None:
@@ -676,7 +678,8 @@ class Handler(BaseHTTPRequestHandler):
                 soon = n <= int(data.get("remind_days") or 3)
                 txt = "ต่ออายุวันนี้" if n == 0 else f"อีก {n} วัน"
                 when = f' · <span class="{"soon" if soon else ""}">{txt}</span>'
-        tags = ' <span class="pill mock">ตัวอย่าง</span>' if it.get("mock") else ""
+        tags = f' <span class="pill cyc-{E(it.get("cycle", ""))}">{E(cycle)}</span>' if cycle else ""
+        tags += ' <span class="pill mock">ตัวอย่าง</span>' if it.get("mock") else ""
         if it.get("category"):
             tags += f' <span class="pill">{E(it["category"])}</span>'
         note = f' · {E(it["note"])}' if it.get("note") else ""
