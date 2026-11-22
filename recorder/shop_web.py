@@ -158,8 +158,8 @@ class ShopPages:
                 foot = (f'<tfoot><tr><td></td><td class="nm">รวม {len(c)} งาน</td>'
                         + "".join(f'<td class="n">{money.fmt(round(sum(j[k] for j in c))).replace("฿", "")}</td>'
                                   for k in ("revenue", "ship_out", "ship_back", "profit")) + '</tr></tfoot>')
-        return ('<table class="jt"><colgroup><col style="width:46px"><col><col style="width:50px"><col style="width:38px">'
-                '<col style="width:40px"><col style="width:52px"></colgroup>'
+        return ('<table class="jt"><colgroup><col style="width:46px"><col><col style="width:52px"><col style="width:44px">'
+                '<col style="width:44px"><col style="width:54px"></colgroup>'
                 '<thead><tr><th>วันที่</th><th class="nm">งาน</th><th>ค่าเช่า</th><th>ไป</th><th>กลับ</th><th>กำไร</th></tr></thead>'
                 f'<tbody>{"".join(rows)}</tbody>{foot}</table>')
 
