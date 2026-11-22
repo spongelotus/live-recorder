@@ -385,3 +385,51 @@ def learn(d, merchant, cat):
         if it.get("review") and (it.get("merchant") or "").upper() == kw:
             it["category"] = cat
             it["review"] = False
+
+
+# ---------- bulk import (statement converted to CSV) ----------
+IMPORT_COLS = ["time", "kind", "amount", "wallet", "to", "category", "merchant", "note"]
+
+
+def import_csv(d, text):
+    """Add rows from CSV text: time,kind,amount,wallet,to,category,merchant,note
+    time = YYYY-MM-DD HH:MM · kind = expense/income/transfer/refund · skips rows already there.
+    Returns (added, skipped)."""
+    import csv
+    import io
+    have = {(it.get("time", "")[:16], it.get("kind"), round(float(it.get("amount") or 0), 2)) for it in d["items"]}
+    added = skipped = 0
+    for row in csv.reader(io.StringIO(text.strip())):
+        if not row or row[0].strip().lower() in ("time", "เวลา"):
+            continue
+        row = [c.strip() for c in row] + [""] * (len(IMPORT_COLS) - len(row))
+        r = dict(zip(IMPORT_COLS, row))
+        try:
+            t = datetime.strptime(r["time"].replace("T", " ")[:16], "%Y-%m-%d %H:%M").strftime("%Y-%m-%dT%H:%M")
+            amount = round(abs(float(r["amount"].replace(",", ""))), 2)
+        except ValueError:
+            skipped += 1
+            continue
+        kind = r["kind"] if r["kind"] in KINDS else "expense"
+        wallet = r["wallet"] if r["wallet"] in WALLETS else "kbank"
+        to = r["to"] if kind == "transfer" and r["to"] in WALLETS else ""
+        key = (t, kind, amount)
+        if not amount or key in have:
+            skipped += 1
+            continue
+        have.add(key)
+        cat = r["category"][:40] if kind != "transfer" else ""
+        if not cat and kind in ("expense", "refund"):
+            cat = classify(d, r["merchant"] + " " + r["note"])
+        if not cat and kind == "income":
+            cat = "โอนเข้า"
+        d["items"].append({"id": secrets.token_hex(4), "time": t, "kind": kind, "amount": amount,
+                           "wallet": wallet, "to": to, "category": cat, "merchant": r["merchant"][:60],
+                           "note": r["note"][:200], "auto": False, "source": "นำเข้า", "raw": "",
+                           "review": not cat and kind in ("expense", "refund")})
+        added += 1
+    d["items"].sort(key=lambda it: it.get("time", ""), reverse=True)
+    if added and d.get("bank_balance") is not None:
+        # older rows must not change today's KBank balance (the bank's figure is the truth)
+        d["wallets"]["kbank"]["opening"] = round(d["bank_balance"] - sum(signed(it, "kbank") for it in d["items"]), 2)
+    return added, skipped

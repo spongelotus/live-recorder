@@ -784,8 +784,9 @@ class Handler(BaseHTTPRequestHandler):
         TH_M = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
         mname = f"{TH_M[first.month]} {first.year + 543}"
         exp, inc, cats = money.month_summary(d, ym)
+        n_imp, s_imp = (q.get("n") or ["0"])[0], (q.get("s") or ["0"])[0]
         parts = [self.flash({"saved": "บันทึกแล้ว", "deleted": "ลบแล้ว", "token": "เปลี่ยนรหัสลับแล้ว — อย่าลืมแก้ลิงก์ใน MacroDroid",
-                             "adjusted": "ปรับยอดแล้ว", "learned": "บันทึกแล้ว · จำร้านนี้ไว้ใส่หมวดให้ครั้งหน้า"})]
+                             "adjusted": "ปรับยอดแล้ว", "imported": f"นำเข้าแล้ว {n_imp} รายการ · ข้าม {s_imp}", "learned": "บันทึกแล้ว · จำร้านนี้ไว้ใส่หมวดให้ครั้งหน้า"})]
         nav_m = (f'<a class="btn gray sm" href="/money?m={prev_m}">‹</a><span class="title">{mname}</span>'
                  + (f'<a class="btn gray sm" href="/money?m={next_m}">›</a>' if next_m <= now.strftime("%Y-%m") else ""))
         parts.append(f'<div class="actions" style="margin:0 0 10px">{nav_m}</div>'
@@ -961,6 +962,10 @@ if(to)f.to.value=to;f.category.value=c||'';if(n!==undefined)f.merchant.value=n;s
 <p class="muted" style="margin-top:0">ใส่ยอดเงินจริงตอนนี้ (เว้นว่าง = ไม่เปลี่ยน) · KBank จะปรับตามยอดที่ธนาคารแจ้งให้เองทุกครั้ง</p>
 <div class="two" style="grid-template-columns:repeat(3,1fr)">{wal}</div>
 <div class="actions"><button>บันทึก</button></div></form></details>
+<details class="fold"><summary>นำเข้ารายการย้อนหลัง</summary><form method="post" action="/money/import" class="card">
+<p class="muted" style="margin-top:0">วางข้อความ CSV ที่ Claude แปลงจาก statement ให้ · รายการที่มีอยู่แล้ว (เวลา+ประเภท+ยอดเดียวกัน) จะข้ามให้เอง</p>
+<textarea name="csv" rows="6" placeholder="time,kind,amount,wallet,to,category,merchant,note"></textarea>
+<div class="actions"><button>นำเข้า</button></div></form></details>
 <details class="fold"><summary>หมวด · จำร้าน</summary><form method="post" action="/money/options" class="card">
 <label style="margin-top:0">หมวดรายจ่าย (คั่นด้วย ,)</label><input name="expense_cats" value="{E(", ".join(d["expense_cats"]))}">
 <label>หมวดรายรับ (คั่นด้วย ,)</label><input name="income_cats" value="{E(", ".join(d["income_cats"]))}">
@@ -1011,6 +1016,10 @@ if(to)f.to.value=to;f.category.value=c||'';if(n!==undefined)f.merchant.value=n;s
         if path == "/money/inbox-del":
             money.update(lambda d: d.update(inbox=[x for x in d["inbox"] if x["id"] != f.get("id")]))
             return self.redirect("/money")
+        if path == "/money/import":
+            res = money.update(lambda d: money.import_csv(d, f.get("csv", "")))
+            log.info("money import: %s added, %s skipped", *res)
+            return self.redirect(f"/money?msg=imported&n={res[0]}&s={res[1]}")
         if path == "/money/token":
             money.update(lambda d: d.update(token=os.urandom(16).hex()))
             return self.redirect("/money?msg=token")
