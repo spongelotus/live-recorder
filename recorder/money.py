@@ -48,7 +48,7 @@ DEFAULT_RULES = [
 # money moved to another of her wallets (not spending)
 TO_WALLET = [("TRUEMONEY", "truemoney"), ("TRUE MONEY", "truemoney"), ("ทรูมันนี่", "truemoney"),
              ("RABBIT LINE PAY", "linepay"), ("LINE PAY", "linepay"), ("LINEPAY", "linepay"),
-             ("วนัชพร", "savings"), ("ATM", "cash"), ("ถอนเงินสด", "cash"), ("กดเงิน", "cash")]
+             ("ATM", "cash"), ("ถอนเงินสด", "cash"), ("กดเงิน", "cash")]
 
 _lock = threading.Lock()
 
