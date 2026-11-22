@@ -969,7 +969,7 @@ if(to)f.to.value=to;f.category.value=c||'';if(n!==undefined)f.merchant.value=n;s
 <details class="fold"><summary>หมวด · จำร้าน</summary><form method="post" action="/money/options" class="card">
 <label style="margin-top:0">หมวดรายจ่าย (คั่นด้วย ,)</label><input name="expense_cats" value="{E(", ".join(d["expense_cats"]))}">
 <label>หมวดรายรับ (คั่นด้วย ,)</label><input name="income_cats" value="{E(", ".join(d["income_cats"]))}">
-<label>ใส่หมวดให้อัตโนมัติ · บรรทัดละ 1 แบบ <code>คำในชื่อร้าน = หมวด</code> (บนสุดมาก่อน)</label>
+<label>ใส่หมวดให้อัตโนมัติ · บรรทัดละ 1 แบบ <code>คำในชื่อร้าน = หมวด</code> (บนสุดมาก่อน) · กดบันทึกแล้วรายการเก่าที่ยังไม่มีหมวดจะได้หมวดด้วย</label>
 <textarea name="rules" rows="8">{E(rules)}</textarea>
 <div class="actions"><button>บันทึก</button></div></form></details>'''
 
@@ -1053,6 +1053,7 @@ if(to)f.to.value=to;f.category.value=c||'';if(n!==undefined)f.merchant.value=n;s
                         if kw.strip() and cat.strip():
                             rules.append({"kw": kw.strip()[:40], "cat": cat.strip()[:40]})
                 d["rules"] = rules
+                money.apply_rules(d)
             money.update(fn)
             return self.redirect("/money?msg=saved")
         self.send_html("not found", 404)

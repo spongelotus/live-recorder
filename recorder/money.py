@@ -382,9 +382,23 @@ def learn(d, merchant, cat):
     d["rules"] = [r for r in d["rules"] if r.get("kw", "").upper() != kw]
     d["rules"].insert(0, {"kw": kw, "cat": cat})
     for it in d["items"]:
-        if it.get("review") and (it.get("merchant") or "").upper() == kw:
+        if it.get("kind") in ("expense", "refund") and not it.get("category") \
+                and kw in (it.get("merchant") or "").upper():
             it["category"] = cat
             it["review"] = False
+
+
+def apply_rules(d):
+    """Fill in a category for older rows that still have none (after rules change). Returns count."""
+    n = 0
+    for it in d["items"]:
+        if it.get("kind") in ("expense", "refund") and not it.get("category"):
+            c = classify(d, (it.get("merchant") or "") + " " + (it.get("note") or ""))
+            if c:
+                it["category"] = c
+                it["review"] = False
+                n += 1
+    return n
 
 
 # ---------- bulk import (statement converted to CSV) ----------
