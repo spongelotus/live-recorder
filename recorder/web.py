@@ -171,7 +171,7 @@ details.fold[open]>summary::before{transform:rotate(90deg)}
 .big small{font-size:15px;color:var(--muted);letter-spacing:0;font-weight:400;margin-left:4px}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
 .stat{background:rgba(255,255,255,.08);border-radius:14px;padding:8px 12px;min-width:0}
-.stat b{display:block;font-size:clamp(32px,9vw,40px);line-height:1.1;font-weight:300;letter-spacing:-.03em}.stat span{font-size:12px;color:#a9a9a4}
+.stat b{display:block;font-size:clamp(28px,8vw,34px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.1;font-weight:300;letter-spacing:-.03em}.stat span{font-size:12px;color:#a9a9a4}
 /* money */
 .plus{color:#3f7a12}.minus{color:var(--ink)}
 .wallets{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:0 0 10px}
@@ -206,8 +206,8 @@ def icon(name):
             f'stroke-linecap="round" stroke-linejoin="round">{ICONS[name]}</svg>')
 
 
-NAV = [("/", "Hub", "home"), ("/money", "เงิน", "wallet"), ("/recorder", "อัดไลฟ์", "rec"),
-       ("/likes", "Likes", "heart"), ("/subs", "Subscriptions", "card")]
+NAV = [("/", "Hub", "home"), ("/money", "เงิน", "wallet"), ("/subs", "Subscriptions", "card"),
+       ("/recorder", "อัดไลฟ์", "rec"), ("/likes", "Likes", "heart")]
 SECTION = {"/recorder": "k-rec", "/subs": "k-subs", "/likes": "k-likes", "/money": "k-money"}
 
 
@@ -541,15 +541,20 @@ class Handler(BaseHTTPRequestHandler):
         pend = [it for it in ld["items"] if it.get("status") == "pending"]
 
         now = datetime.now(record.TZ)
+        md = money.load()
+        m_exp, _, _ = money.month_summary(md, now.strftime("%Y-%m"))
+        m_bal = money.balances(md)
         greet = "อรุณสวัสดิ์" if now.hour < 12 else "สวัสดีตอนบ่าย" if now.hour < 18 else "สวัสดีตอนเย็น"
         nxt = (f'{E(up[0][1]["name"])} {"วันนี้" if up[0][0] == 0 else f"อีก {up[0][0]} วัน"}' if up else "ไม่มีใน 30 วัน")
         summary = (f'<div class="card dark wide"><p class="hello">{greet}, Bua</p>'
                    f'<div class="muted">{now.strftime("%A %d %B %Y · %H:%M")}</div>'
                    f'<div class="stats" style="margin-top:10px">'
-                   f'<div class="stat"><b>{len(live)}</b><span>กำลังอัดไลฟ์</span></div>'
-                   f'<div class="stat"><b>{len(pend)}</b><span>คลิปรอโพสต์ X</span></div>'
+                   f'<div class="stat"><b>{money.fmt(round(m_exp))}</b><span>จ่ายเดือนนี้</span></div>'
+                   f'<div class="stat"><b>{money.fmt(round(sum(m_bal.values())))}</b><span>เงินรวมทุกกระเป๋า</span></div>'
                    f'<div class="stat"><b>{subs.fmt_money(month)}</b><span>subscriptions / เดือน</span></div>'
                    f'<div class="stat"><b class="clip" style="font-size:15px;padding:3px 0">{nxt}</b><span>ตัดบัตรครั้งถัดไป</span></div>'
+                   f'<div class="stat"><b>{len(live)}</b><span>กำลังอัดไลฟ์</span></div>'
+                   f'<div class="stat"><b>{len(pend)}</b><span>คลิปรอโพสต์ X</span></div>'
                    f'</div></div>')
 
         pill = (f'<span class="pill live">REC {len(live)}</span>' if live else '<span class="pill">idle</span>')
@@ -586,9 +591,6 @@ class Handler(BaseHTTPRequestHandler):
         likes_card = (f'<a class="card k-likes" href="/likes"><div class="chead"><div class="ctitle">'
                       f'<span class="ico">{icon("heart")}</span><span>Likes<small>YouTube → X</small></span></div>{lpill}</div>'
                       f'{likes_main}</a>')
-        md = money.load()
-        m_exp, _, _ = money.month_summary(md, now.strftime("%Y-%m"))
-        m_bal = money.balances(md)
         n_rev = len(money.needs_review(md)) + len(md["inbox"])
         mpill = f'<span class="pill err">รอตรวจ {n_rev}</span>' if n_rev else ""
         wrows = "".join(f'<div class="row"><span>{name}</span><b>{money.fmt(m_bal[w])}</b></div>'
@@ -596,7 +598,7 @@ class Handler(BaseHTTPRequestHandler):
         money_card = (f'<a class="card k-money" href="/money"><div class="chead"><div class="ctitle">'
                       f'<span class="ico">{icon("wallet")}</span><span>รายรับรายจ่าย<small>จ่ายเดือนนี้</small></span></div>{mpill}</div>'
                       f'<div class="big">{money.fmt(m_exp)}</div>{wrows}</a>')
-        body = f'<div class="bento">{summary}{money_card}{rec_card}{likes_card}{subs_card}</div>'
+        body = f'<div class="bento">{summary}{money_card}{subs_card}{rec_card}{likes_card}</div>'
         self.send_html(page("Hub", body, active="/", heading=None))
 
     # ---------- subscriptions ----------
@@ -1289,13 +1291,13 @@ if(to)f.to.value=to;f.category.value=c||'';if(n!==undefined)f.merchant.value=n;s
 <input name="new_password" type="password" autocomplete="new-password">
 <div class="actions"><button>เปลี่ยนรหัสผ่าน</button></div></form>
 <h2>แจ้งเตือน · ntfy</h2><div class="card">
-<p style="margin-top:0">ในแอป ntfy กด <b>+</b> แล้วใส่ชื่อ topic นี้ · ใช้ร่วมกันทั้งอัดไลฟ์ Subscriptions และ Likes</p>
+<p style="margin-top:0">ในแอป ntfy กด <b>+</b> แล้วใส่ชื่อ topic นี้ · ใช้ร่วมกันทุกส่วนของ Hub</p>
 <p><code style="font-size:16px">{E(topic)}</code></p>
 <p class="muted">ใครรู้ชื่อนี้ก็เห็นแจ้งเตือนได้ อย่าแชร์ต่อ</p>
 <form method="post" action="/test-notify" class="actions"><button class="gray">ส่งแจ้งเตือนทดสอบ</button></form></div>
 <h2>ตั้งค่าแต่ละส่วน</h2><div class="card">
-<div class="actions" style="margin-top:0"><a class="btn gray" href="/recorder/settings">อัดไลฟ์</a>
-<a class="btn gray" href="/subs">Subscriptions</a><a class="btn gray" href="/likes">Likes</a></div></div>
+<div class="actions" style="margin-top:0"><a class="btn gray" href="/money">เงิน</a><a class="btn gray" href="/subs">Subscriptions</a>
+<a class="btn gray" href="/recorder/settings">อัดไลฟ์</a><a class="btn gray" href="/likes">Likes</a></div></div>
 """
         self.send_html(page("ตั้งค่าระบบ", body, active="/settings", heading="ตั้งค่าระบบ"))
 
