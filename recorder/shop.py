@@ -404,3 +404,25 @@ def used_links(d, except_key=None):
         if k != except_key:
             s.update(m.get("links", []))
     return s
+
+
+def suggest(j, cands):
+    """Guess which candidate money items belong to the job: a transfer in of the expected price
+    (nearest date) and delivery costs within a day of the job."""
+    try:
+        jd = date.fromisoformat(j["date"])
+    except Exception:
+        return set()
+    want = j["revenue"]
+    out = set()
+    inc = [it for it in cands if it.get("kind") == "income" and abs(float(it["amount"]) - want) < 0.5]
+    if inc:
+        best = min(inc, key=lambda it: abs((datetime.fromisoformat(it["time"][:16]).date() - jd).days))
+        out.add(best["id"])
+    for it in cands:
+        if it.get("kind") in ("expense", "refund"):
+            t = datetime.fromisoformat(it["time"][:16]).date()
+            text = f'{it.get("note", "")}'
+            if abs((t - jd).days) <= 1 and ("ส่งให้" in text or "คืนกล้อง" in text or "ลูกค้า" in text):
+                out.add(it["id"])
+    return out

@@ -122,6 +122,8 @@ class ShopPages:
         used = shop.used_links(d, j["key"])
         cands = shop.candidates(j, md, used)
         linked = set(meta.get("links", []))
+        if "links" not in meta and j["status"] == "rent" and not j["future"]:
+            linked = shop.suggest(j, cands)  # first time: pre-tick the likely ones (saved only after "บันทึก")
         boxes = []
         for it in cands:
             k = it.get("kind")
