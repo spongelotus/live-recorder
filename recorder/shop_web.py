@@ -13,6 +13,28 @@ def _w():
     return web
 
 
+SHOP_CSS = """<style>
+.jt{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+.jt th,.jt td{padding:5px 3px;border-top:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.35}
+.jt thead th{font-weight:500;color:var(--muted);font-size:11px;border-top:0;text-align:right;padding-top:6px}
+.jt .nm{text-align:left}.jt td.d{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.jt td.n{text-align:right;font-family:var(--mono);font-size:12px}.jt td.p{font-weight:600}
+.jt .est{color:#a3a29c}.jt td.warn{color:#b2321d;font-family:var(--sans);font-size:11px}
+.jt .eq{font-size:10.5px;color:var(--muted);margin-left:5px}
+.jt .tg{font-size:10.5px;background:var(--soft2);border-radius:6px;padding:1px 5px;margin-right:4px}.jt .tg.warn{background:#ffeec2;color:#7a5200}
+.jt tr.self td,.jt tr.fut td{color:#a3a29c}.jt tr.self td.nm{text-decoration:none}
+.jt tbody tr{cursor:pointer}.jt tbody tr:hover td{background:var(--soft)}
+.jt tfoot td{font-weight:600;font-size:12px;border-top:1.5px solid var(--ink2)}
+.mchart{display:flex;align-items:flex-end;gap:4px;height:170px;padding-top:4px}
+.mb{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+.mb i{display:block;width:100%;max-width:38px}.mb i.p{background:#1c1c1c;border-radius:0 0 3px 3px;min-height:1px}
+.mb i.s{background:var(--shop);border-radius:5px 5px 0 0}
+.mb b{font-size:10px;font-weight:500;font-family:var(--mono);color:var(--ink2);margin-bottom:2px}
+.mb span{font-size:10px;color:var(--muted);margin-top:4px;white-space:nowrap}.mb small{font-size:9px;color:#a3a29c;font-family:var(--mono)}
+.mb:hover i{opacity:.75}
+</style>"""
+
+
 def baht(v):
     return money.fmt(round(v))
 
@@ -65,67 +87,110 @@ class ShopPages:
         parts.append('<h2>คืนทุนแยกอุปกรณ์ <span class="muted" style="font-weight:400">· งานคอมโบแบ่งกำไรตามราคาเช่าเดี่ยว</span></h2>'
                      f'<div class="card list">{"".join(rows)}</div>')
 
+        # ---- edit one job ----
+        edit = (q.get("edit") or [""])[0]
+        ej = next((j for j in js if j["key"] == edit), None)
+        if ej:
+            edays = f" · {ej['days']} วัน" if ej["days"] > 1 else ""
+            parts.append(f'<div class="card" id="edit"><div class="row plain"><div><span class="title">{E(ej["name"])}</span>'
+                         f'<div class="muted">{E(shop.thai_date(ej["date"]))}{edays}</div></div>'
+                         f'<a class="btn gray sm" href="/shop#m-{ej["date"][:7]}">✕</a></div>{self.shop_form(ej, d, md)}</div>')
+
         # ---- things to check ----
         todo = [j for j in js if j["needs_link"] or (j["guess_self"] and not j["future"])]
         if todo:
-            rows = "".join(self.shop_job(j, d, md) for j in todo)
-            parts.append(f'<h2>รอเช็ก · {len(todo)} <span class="muted" style="font-weight:400">· '
-                         f'ไม่เจอยอดโอนที่ตรงราคา หรือยืนยันว่าใช้เอง</span></h2><div class="card list">{rows}</div>')
+            parts.append(f'<h2>รอเช็ก · {len(todo)} <span class="muted" style="font-weight:400">· แตะเพื่อแก้</span></h2>'
+                         f'<div class="card list" style="padding:4px 12px">{self.shop_table(todo, total=False)}</div>')
 
-        # ---- months ----
+        # ---- monthly chart ----
         if s["months"]:
-            rows = []
-            for m in sorted(s["months"], reverse=True):
-                x = s["months"][m]
-                y, mo = int(m[:4]), int(m[5:7])
-                est = ' <span class="pill">ประมาณ</span>' if x["est"] else ""
-                rows.append(f'<a class="row" href="#m-{m}"><div><span class="title">{shop.TH_M[mo]} {y + 543}</span>{est}'
-                            f'<div class="muted">{x["n"]} งาน · รับ {baht(x["rev"])} · ค่าส่ง {baht(x["ship"])}</div></div>'
-                            f'<div class="price">{baht(x["profit"])}<small>กำไร</small></div></a>')
-            parts.append(f'<h2>สรุปรายเดือน</h2><div class="card list">{"".join(rows)}</div>')
+            parts.append(f'<h2>สรุปรายเดือน</h2><div class="card">{self.shop_chart(s["months"])}</div>')
 
         # ---- all jobs by month ----
-        cur = None
-        buf = []
-        for j in js + [None]:
-            m = j["date"][:7] if j else None
-            if m != cur and buf:
-                y, mo = int(cur[:4]), int(cur[5:7])
-                parts.append(f'<h2 id="m-{cur}">{shop.TH_M[mo]} {y + 543}</h2><div class="card list">{"".join(buf)}</div>')
-                buf = []
-            if j is None:
-                break
-            cur = m
-            buf.append(self.shop_job(j, d, md))
+        months = []
+        for j in js:
+            if not months or months[-1][0] != j["date"][:7]:
+                months.append((j["date"][:7], []))
+            months[-1][1].append(j)
+        for m, items in months:
+            y, mo = int(m[:4]), int(m[5:7])
+            parts.append(f'<h2 id="m-{m}">{shop.TH_M[mo]} {y + 543}</h2>'
+                         f'<div class="card list" style="padding:4px 12px">{self.shop_table(items)}</div>')
+        parts.append('<p class="muted" style="margin:6px 4px">สีเทา = ตัวเลขประมาณ (ยังไม่มีรายการเงินจริง) · แตะแถวเพื่อแก้ไข / ผูกรายการเงิน</p>')
         parts.append(self.shop_settings(d))
         sub = f'{len(todo)} รอเช็ก' if todo else ""
-        self.send_html(w.page("ร้านกล้อง", "".join(parts), active="/shop", heading="ร้านเช่ากล้อง", sub=sub))
+        self.send_html(w.page("ร้านกล้อง", SHOP_CSS + "".join(parts), active="/shop", heading="ร้านเช่ากล้อง", sub=sub))
 
-    def shop_job(self, j, d, md):
+    def shop_table(self, js, total=True):
+        def n(v, actual=True, dash=False):
+            if dash:
+                return '<td class="n">-</td>'
+            return f'<td class="n{"" if actual else " est"}">{money.fmt(round(v)).replace("฿", "")}</td>'
+        rows = []
+        for j in js:
+            items = "+".join(shop.CODE[x] for x in j["items"]) or "?"
+            cls, tag = "", ""
+            if j["status"] == "self":
+                cls, tag = "self", '<span class="tg">ใช้เอง</span>'
+            elif j["future"]:
+                cls, tag = "fut", '<span class="tg">จอง</span>'
+            elif j["guess_self"]:
+                tag = '<span class="tg warn">ใช้เอง?</span>'
+            days = f'×{j["days"]}' if j["days"] > 1 else ""
+            href = "/shop?edit=" + urllib.parse.quote(j["key"]) + "#edit"
+            dd = j["date"]
+            first = (f'<td class="d">{int(dd[8:10])}/{int(dd[5:7])}</td>'
+                     f'<td class="nm">{tag}{E(j["name"])}<span class="eq">{items}{days}</span></td>')
+            if j["status"] == "self":
+                cells = n(0, dash=True) * 4
+            else:
+                rent = (f'<td class="n warn">รอโอน</td>' if j["needs_link"] else n(j["revenue"], j["price_actual"] and not j["future"]))
+                sa = j["ship_actual"] and not j["future"]
+                cells = (rent + n(j["ship_out"], sa) + n(j["ship_back"], sa)
+                         + f'<td class="n p{"" if (j["price_actual"] and sa) else " est"}">{money.fmt(round(j["profit"])).replace("฿", "")}</td>')
+            rows.append(f'<tr class="{cls}" onclick="location.href=\'{href}\'">{first}{cells}</tr>')
+        foot = ""
+        if total:
+            c = [j for j in js if j["status"] == "rent" and not j["future"]]
+            if c:
+                foot = (f'<tfoot><tr><td></td><td class="nm">รวม {len(c)} งาน</td>'
+                        + "".join(f'<td class="n">{money.fmt(round(sum(j[k] for j in c))).replace("฿", "")}</td>'
+                                  for k in ("revenue", "ship_out", "ship_back", "profit")) + '</tr></tfoot>')
+        return ('<table class="jt"><colgroup><col style="width:46px"><col><col style="width:50px"><col style="width:38px">'
+                '<col style="width:40px"><col style="width:52px"></colgroup>'
+                '<thead><tr><th>วันที่</th><th class="nm">งาน</th><th>ค่าเช่า</th><th>ไป</th><th>กลับ</th><th>กำไร</th></tr></thead>'
+                f'<tbody>{"".join(rows)}</tbody>{foot}</table>')
+
+    def shop_chart(self, months):
+        keys = sorted(months)
+        # fill gaps so empty months show as zero
+        allk = []
+        y, m = int(keys[0][:4]), int(keys[0][5:7])
+        while f"{y}-{m:02d}" <= keys[-1]:
+            allk.append(f"{y}-{m:02d}")
+            m += 1
+            if m > 12:
+                y, m = y + 1, 1
+        top = max([months[k]["rev"] for k in keys] + [1])
+        bars = []
+        for k in allk:
+            x = months.get(k, {"rev": 0, "ship": 0, "profit": 0, "n": 0})
+            hp = max(0, x["profit"]) / top * 100
+            hs = x["ship"] / top * 100
+            lbl = f'{x["profit"] / 1000:.1f}k' if x["profit"] else ""
+            bars.append(f'<a class="mb" href="#m-{k}" title="{shop.TH_M[int(k[5:7])]} · {x["n"]} งาน · รับ {baht(x["rev"])} · ส่ง {baht(x["ship"])} · กำไร {baht(x["profit"])}">'
+                        f'<b>{lbl}</b><i class="s" style="height:{hs:.1f}%"></i><i class="p" style="height:{hp:.1f}%"></i>'
+                        f'<span>{shop.TH_M[int(k[5:7])]}</span><small>{x["n"] or ""}</small></a>')
+        return (f'<div class="mchart">{"".join(bars)}</div>'
+                '<div class="davg"><span><i class="dot" style="background:#1c1c1c"></i>กำไร</span>'
+                '<span><i class="dot" style="background:var(--shop)"></i>ค่าส่ง (กำไร + ค่าส่ง = ค่าเช่า)</span>'
+                '<span class="muted">ตัวเลขใต้เดือน = จำนวนงาน</span></div>')
+
+    def shop_form(self, j, d, md):
         meta = j["meta"]
-        items = "".join(f'<span class="pill">{shop.SHORT[x]}</span> ' for x in j["items"]) or '<span class="pill err">ไม่มีอุปกรณ์</span>'
-        days = f' · {j["days"]} วัน' if j["days"] > 1 else ""
-        tags = ""
-        if j["status"] == "self":
-            tags += ' <span class="pill">ใช้เอง</span>'
-        elif j["guess_self"] and not j["future"]:
-            tags += ' <span class="pill err">มีอัลบั้มวันนี้ · ใช้เอง?</span>'
-        if j["future"]:
-            tags += ' <span class="pill acc">จองแล้ว</span>'
-        if j["needs_link"]:
-            tags += ' <span class="pill err">ไม่เจอยอดโอน</span>'
-        elif j["auto"]:
-            tags += ' <span class="pill ok">จับคู่อัตโนมัติ</span>'
-        if j["status"] == "self":
-            price = '<span class="muted">-</span>'
-        else:
-            est = "" if (j["price_actual"] and j["ship_actual"]) else "≈"
-            price = (f'{est}{baht(j["profit"])}<small>รับ {baht(j["revenue"])} · ส่ง {baht(j["ship"])}</small>')
         used = shop.used_links(d, j["key"])
         cands = shop.candidates(j, md, used)
-        linked = set(meta.get("links", []))
-        if "links" not in meta:
-            linked = {x["id"] for x in j["links"]}  # automatic match (saved only after "บันทึก")
+        linked = set(meta.get("links", [])) if "links" in meta else {x["id"] for x in j["links"]}
         boxes = []
         for it in cands:
             k = it.get("kind")
@@ -137,30 +202,28 @@ class ShopPages:
                          f'<span><span class="mono">{E(it["time"][8:10])}/{E(it["time"][5:7])} {E(it["time"][11:16])}</span> '
                          f'<b class="mono" style="font-weight:500">{sign}{money.fmt(float(it["amount"]))}</b> {E(title)}'
                          f'<span class="muted">{note}</span></span></label>')
-        boxes_html = ("".join(boxes) if boxes else
-                      '<div class="muted">ไม่มีรายการเงินช่วงวันนี้ (±10 วัน) ให้เลือก</div>')
-
-        def chk(eq):
-            return " checked" if eq in j["items"] else ""
+        boxes_html = "".join(boxes) or '<div class="muted">ไม่มีรายการเงินช่วงวันนี้ (±10 วัน) ให้เลือก</div>'
         eq_boxes = "".join(f'<label style="display:inline-flex;align-items:center;margin:4px 12px 0 0;font-weight:400">'
-                           f'<input type="checkbox" name="eq_{e}" value="1"{chk(e)}>{shop.SHORT[e]}</label>' for e in shop.EQUIP)
+                           f'<input type="checkbox" name="eq_{e}" value="1"{" checked" if e in j["items"] else ""}>{shop.SHORT[e]}</label>'
+                           for e in shop.EQUIP)
         st = j["status"]
-        form = f'''<form method="post" action="/shop/job" style="margin-top:8px">
+        half = float(d["ship_default"]) / 2
+
+        def v(k):
+            return E(str(meta.get(k, "")))
+        return f'''<form method="post" action="/shop/job" style="margin-top:8px">
 <input type="hidden" name="key" value="{E(j["key"])}">
 <div class="seg2"><label><input type="radio" name="status" value="rent"{" checked" if st == "rent" else ""}><span>ให้เช่า</span></label>
 <label><input type="radio" name="status" value="self"{" checked" if st == "self" else ""}><span>ใช้เอง</span></label></div>
-<label>อุปกรณ์ที่เช่า (ตามช่องสีแดงในชีต)</label><div>{eq_boxes}</div>
-<label>เงินที่เกี่ยวกับงานนี้ (ติ๊ก = ผูกกับงาน · เงินเข้า = ค่าเช่า · รายจ่าย = ค่าส่ง)</label>{boxes_html}
-<div class="two"><div><label>ค่าเช่า (ถ้าไม่ผูกเงิน)</label><input name="price" type="number" step="1" value="{E(str(meta.get("price", "")))}" placeholder="{shop.table_price(d, j["items"]) * j["days"]:g}"></div>
-<div><label>ค่าส่งไปกลับ (ถ้าไม่ผูก)</label><input name="ship" type="number" step="1" value="{E(str(meta.get("ship", "")))}" placeholder="{float(d["ship_default"]):g}"></div></div>
-<label>โน้ต</label><input name="note" value="{E(meta.get("note", ""))}">
+<label>อุปกรณ์ที่เช่า</label><div>{eq_boxes}</div>
+<label>รายการเงินของงานนี้ (เงินเข้า = ค่าเช่า · GrabExpress “ส่งให้” = ไป · “ส่งคืน/ส่งถึงบัว” = กลับ)</label>{boxes_html}
+<label>ถ้าไม่มีรายการเงิน ใส่เองได้</label>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 8px">
+<div><label>ค่าเช่า</label><input name="price" type="number" step="1" value="{v("price")}" placeholder="{shop.table_price(d, j["items"]) * j["days"]:g}"></div>
+<div><label>ส่งไป</label><input name="ship_out" type="number" step="1" value="{v("ship_out")}" placeholder="{half:g}"></div>
+<div><label>ส่งกลับ</label><input name="ship_back" type="number" step="1" value="{v("ship_back")}" placeholder="{half:g}"></div></div>
+<label>โน้ต</label><input name="note" value="{v("note")}">
 <div class="actions"><button>บันทึก</button></div></form>'''
-        note = f' · {E(meta["note"])}' if meta.get("note") else ""
-        return (f'<details class="row" style="display:block"><summary style="list-style:none;cursor:pointer;margin:0;color:inherit;font-size:inherit">'
-                f'<div class="row plain" style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div style="min-width:0">'
-                f'<span class="title">{E(j["name"])}</span>{tags}'
-                f'<div class="muted line2"><span class="mono">{E(shop.thai_date(j["date"]))}</span>{days} · {items}{note}</div></div>'
-                f'<div class="price">{price}</div></div></summary>{form}</details>')
 
     def shop_settings(self, d):
         eq = "".join(f'<div><label>ราคาทุน {E(d["equipment"][e]["name"])}</label>'
@@ -195,7 +258,8 @@ class ShopPages:
                     return
                 m = d["jobs"].setdefault(key, {})
                 m["status"] = "self" if f.get("status") == "self" else "rent"
-                for fld in ("price", "ship"):
+                m.pop("ship", None)
+                for fld in ("price", "ship_out", "ship_back"):
                     v = (f.get(fld) or "").strip()
                     try:
                         m[fld] = round(float(v), 2) if v != "" else ""
@@ -207,7 +271,7 @@ class ShopPages:
                 items = [e for e in shop.EQUIP if f.get("eq_" + e)]
                 m["items"] = items if items != row["items"] else []
             shop.update(apply)
-            return self.redirect("/shop?msg=saved")
+            return self.redirect("/shop?msg=saved#m-" + key[:7])
         if path == "/shop/settings":
             def apply(d):
                 sid = shop.sheet_id_from(f.get("sheet", ""))
@@ -264,7 +328,7 @@ class ShopPages:
                     report["missing"].append(x)
                     continue
                 m = d["jobs"].setdefault(cand[0]["key"], {})
-                for k in ("status", "price", "ship", "note"):
+                for k in ("status", "price", "ship", "ship_out", "ship_back", "note"):
                     if k in x:
                         m[k] = x[k]
                 report["matched"] += 1

@@ -30,6 +30,7 @@ EQUIP = ["cam", "l100", "l70"]          # order = sheet columns C, D, E
 EQUIP_DEFAULT = {"cam": {"name": "กล้อง", "cost": 0}, "l100": {"name": "เลนส์ EF 100-400", "cost": 0},
                  "l70": {"name": "เลนส์ RF 70-200", "cost": 0}}
 SHORT = {"cam": "กล้อง", "l100": "100-400", "l70": "70-200"}
+CODE = {"cam": "กล้อง", "l100": "100-400", "l70": "70-200"}
 GALLERY_URLS = ["https://spongelotus.work/api/gallery", "https://spongelotus.work/photos.json"]
 SYNC_EVERY = 15 * 60
 
@@ -281,16 +282,36 @@ def jobs(d, md=None):
         links = [by_id[i] for i in (meta["links"] if "links" in meta else auto.get(r["key"], [])) if i in by_id]
         j["links"] = links
         inc = sum(float(x["amount"]) for x in links if x.get("kind") == "income")
-        exp = sum(float(x["amount"]) * (-1 if x.get("kind") == "refund" else 1)
-                  for x in links if x.get("kind") in ("expense", "refund"))
+        exp_items = [x for x in links if x.get("kind") in ("expense", "refund")]
+
+        def amt(x):
+            return float(x["amount"]) * (-1 if x.get("kind") == "refund" else 1)
         est_price = float(meta["price"]) if meta.get("price") not in (None, "") else table_price(d, items) * r["days"]
-        est_ship = float(meta["ship"]) if meta.get("ship") not in (None, "") else float(d["ship_default"])
+        half = float(d["ship_default"]) / 2
+
+        def num(v):
+            return v not in (None, "")
+        if exp_items:
+            back = sum(amt(x) for x in exp_items if is_return(x))
+            out_ = sum(amt(x) for x in exp_items if not is_return(x))
+            ship_actual = True
+        elif num(meta.get("ship_out")) or num(meta.get("ship_back")):
+            out_ = float(meta["ship_out"]) if num(meta.get("ship_out")) else 0.0
+            back = float(meta["ship_back"]) if num(meta.get("ship_back")) else 0.0
+            ship_actual = True
+        elif num(meta.get("ship")):  # older total-only value
+            out_ = back = float(meta["ship"]) / 2
+            ship_actual = True
+        else:
+            out_ = back = half
+            ship_actual = False
         j["price_actual"] = inc > 0
-        j["ship_actual"] = exp > 0 or meta.get("ship") not in (None, "")
+        j["ship_actual"] = ship_actual
         j["revenue"] = inc if inc > 0 else est_price
-        j["ship"] = exp if exp > 0 else est_ship
+        j["ship_out"], j["ship_back"] = out_, back
+        j["ship"] = out_ + back
         if j["status"] == "self":
-            j["revenue"], j["ship"] = 0.0, 0.0
+            j["revenue"] = j["ship"] = j["ship_out"] = j["ship_back"] = 0.0
         j["profit"] = j["revenue"] - j["ship"]
         j["needs_link"] = (j["status"] == "rent" and not j["future"] and d.get("actual_from")
                            and r["date"] >= d["actual_from"] and inc == 0)
@@ -440,6 +461,10 @@ def _is_delivery(it):
     text = f'{it.get("merchant", "")} {it.get("category", "")}'.lower()
     return it.get("kind") in ("expense", "refund") and (
         "messenger" in text or "grabexpress" in text or "lalamove" in text)
+
+
+def is_return(it):
+    return any(x in (it.get("note") or "") for x in SHIP_BACK)
 
 
 def _day(it):
