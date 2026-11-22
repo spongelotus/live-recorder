@@ -219,7 +219,7 @@ class ShopPages:
 <label><input type="radio" name="status" value="self"{" checked" if st == "self" else ""}><span>ใช้เอง</span></label></div>
 <label>อุปกรณ์ที่เช่า</label><div>{eq_boxes}</div>
 <label>รายการเงินของงานนี้ (เงินเข้า = ค่าเช่า · GrabExpress “ส่งให้” = ไป · “ส่งคืน/ส่งถึงบัว” = กลับ)</label>{boxes_html}
-<label>ถ้าไม่มีรายการเงิน ใส่เองได้</label>
+<label>ใส่ตัวเลขเอง (ถ้ากรอก จะใช้แทนรายการเงินที่ติ๊ก · เว้นว่าง = ใช้จากรายการเงิน)</label>
 <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 8px">
 <div><label>ค่าเช่า</label><input name="price" type="number" step="1" value="{v("price")}" placeholder="{shop.table_price(d, j["items"]) * j["days"]:g}"></div>
 <div><label>ส่งไป</label><input name="ship_out" type="number" step="1" value="{v("ship_out")}" placeholder="{half:g}"></div>

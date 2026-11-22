@@ -291,23 +291,30 @@ def jobs(d, md=None):
 
         def num(v):
             return v not in (None, "")
-        if exp_items:
-            back = sum(amt(x) for x in exp_items if is_return(x))
-            out_ = sum(amt(x) for x in exp_items if not is_return(x))
-            ship_actual = True
-        elif num(meta.get("ship_out")) or num(meta.get("ship_back")):
-            out_ = float(meta["ship_out"]) if num(meta.get("ship_out")) else 0.0
-            back = float(meta["ship_back"]) if num(meta.get("ship_back")) else 0.0
-            ship_actual = True
+        # a number typed in by hand always wins; otherwise linked money items; otherwise the estimate
+        lout = sum(amt(x) for x in exp_items if not is_return(x))
+        lback = sum(amt(x) for x in exp_items if is_return(x))
+        if num(meta.get("ship_out")):
+            out_ = float(meta["ship_out"])
+        elif exp_items:
+            out_ = lout
         elif num(meta.get("ship")):  # older total-only value
-            out_ = back = float(meta["ship"]) / 2
-            ship_actual = True
+            out_ = float(meta["ship"]) / 2
         else:
-            out_ = back = half
-            ship_actual = False
-        j["price_actual"] = inc > 0
+            out_ = half
+        if num(meta.get("ship_back")):
+            back = float(meta["ship_back"])
+        elif exp_items:
+            back = lback
+        elif num(meta.get("ship")):
+            back = float(meta["ship"]) / 2
+        else:
+            back = half
+        ship_actual = bool(exp_items) or any(num(meta.get(k)) for k in ("ship_out", "ship_back", "ship"))
+        manual_price = num(meta.get("price"))
+        j["price_actual"] = inc > 0 or manual_price
         j["ship_actual"] = ship_actual
-        j["revenue"] = inc if inc > 0 else est_price
+        j["revenue"] = est_price if manual_price else (inc if inc > 0 else est_price)
         j["ship_out"], j["ship_back"] = out_, back
         j["ship"] = out_ + back
         if j["status"] == "self":
