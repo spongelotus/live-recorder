@@ -724,7 +724,7 @@ class Handler(ShopPages, BaseHTTPRequestHandler):
             return "".join(f'<option value="{k}"{" selected" if k == current else ""}>{E(v)}</option>'
                            for k, v in choices.items())
         cur = {c: c for c in subs.CURRENCIES}
-        price = "" if it.get("price") in ("", None) else f'{float(it["price"]):g}'
+        price = "" if it.get("price") in ("", None) else f'{float(it["price"]):.2f}'.rstrip("0").rstrip(".")
         delete = ""
         if it["id"]:
             delete = (f'<form method="post" action="/subs/delete" onsubmit="return confirm(\'ลบรายการนี้?\')" '
@@ -994,7 +994,7 @@ class Handler(ShopPages, BaseHTTPRequestHandler):
         src = next((x for x in d["inbox"] if x["id"] == (q.get("add_from") or [""])[0]), None)
         if new and src:
             it.update(wallet="kbank", note="", time=src["at"][:16])
-        amount = "" if it.get("amount") in ("", None) else f'{float(it["amount"]):g}'
+        amount = "" if it.get("amount") in ("", None) else f'{float(it["amount"]):.2f}'.rstrip("0").rstrip(".")
 
         def radio(name, choices, cur):
             return "".join(f'<label><input type="radio" name="{name}" value="{k}"{" checked" if k == cur else ""}>'
