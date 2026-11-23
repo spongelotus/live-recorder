@@ -161,6 +161,26 @@ def _when(hhmm, received):
         return received
 
 
+TH_MONTHS = {"ม.ค.": 1, "ก.พ.": 2, "มี.ค.": 3, "เม.ย.": 4, "พ.ค.": 5, "มิ.ย.": 6,
+             "ก.ค.": 7, "ส.ค.": 8, "ก.ย.": 9, "ต.ค.": 10, "พ.ย.": 11, "ธ.ค.": 12}
+
+
+def _kplus_date(day, mon, year, hhmm, received):
+    """'23', 'พ.ย.', '69', '19:19' → datetime (Thai Buddhist year → AD). Falls back to the arrival day."""
+    try:
+        y = int(year)
+        y = y + 2500 if y < 100 else y      # 69 → 2569
+        y = y - 543 if y > 2400 else y      # 2569 → 2026
+        mo = TH_MONTHS.get(mon if mon.endswith(".") else mon + ".")
+        h, mi = map(int, (hhmm or "0:00").split(":"))
+        d = received.replace(year=y, month=mo, day=int(day), hour=h, minute=mi, second=0, microsecond=0)
+        if abs((d - received).days) <= 7:
+            return d
+    except Exception:
+        pass
+    return _when(hhmm, received)
+
+
 def parse(text, received=None):
     """Read one KBank alert. Returns dict or None.
     dict: kind, amount, merchant, time(datetime), balance, card(last4), refund(bool)"""
@@ -168,6 +188,20 @@ def parse(text, received=None):
     t = norm(text)
     if not t or is_otp(t):
         return None
+
+    # 0) K PLUS app notification (title + text joined by ingest):
+    #    รายการโอน/ถอน บัญชี xxx-x-x6717-x จำนวนเงิน 23,003.33 บาท วันที่ 23 พ.ย. 69 19:19 น.
+    #    K PLUS gives no merchant / recipient, so these land as "ต้องเลือกหมวด"
+    m = re.search(r"รายการ\s*(เงินเข้า|รับโอน|โอน/ถอน|ถอน|โอน|ชำระ|จ่าย)?.*?จำนวนเงิน\s*" + AMT + r"\s*บาท"
+                  r"(?:.*?วันที่\s*(\d{1,2})\s*(\S+?)\s*(\d{2,4}))?(?:\s*(\d{1,2}:\d{2})\s*น)?", t)
+    if m:
+        word = m.group(1) or ""
+        kind = "income" if word in ("เงินเข้า", "รับโอน") else "expense"
+        if not word:
+            kind = "income" if re.search(r"เงินเข้า|รับโอน|ฝาก", t) else "expense"
+        when = _kplus_date(m.group(3), m.group(4), m.group(5), m.group(6), received)
+        return {"kind": kind, "amount": num(m.group(2)), "merchant": "", "card": "",
+                "time": when, "balance": None, "kplus": True}
 
     # 1) KBank card SMS:  ชำระ 3,522.58บ บัตร x-5676@ANTHROPIC* CLAUDE SUB 18:47น เหลือ 434.76บ
     m = re.search(r"(ชำระ|คืนเงิน|ยกเลิก)\s*" + AMT + r"\s*(?:บ|บาท)\s*บัตร\s*x\s*-?\s*(\d{4})\s*@\s*(.+?)\s+"
@@ -221,9 +255,11 @@ def _key(p):
 
 def is_bank(title, text):
     """Only KBank messages are read; anything else from the phone is dropped unseen."""
-    if "KBANK" in (title or "").upper().replace(" ", ""):
+    if "KBANK" in (title or "").upper().replace(" ", "") or re.search(r"^รายการ", norm(title)):
         return True
     t = norm(text)
+    if re.search(r"บัญชี\s*\S*\d{4}\S*\s*จำนวนเงิน\s*[\d,]+\.\d{2}\s*บาท", t):   # K PLUS app
+        return True
     # LINE may group/rename the notification (title "LINE" or a count) — still accept KBank Live cards by their text
     if "KBANK" in t.upper().replace(" ", "") or re.search(r"รายการ(เงินเข้า|โอน/ถอน|ชำระ|จ่าย)", t):
         return True
@@ -245,6 +281,12 @@ def ingest(text, source="", received=None, title=None):
         update(lambda d: d.update(last_in=received.isoformat(timespec="seconds"), last_status="otp",
                                   last_bank_in=received.isoformat(timespec="seconds")))
         return "otp", None
+    if title and re.search(r"^รายการ", norm(title)) and "รายการ" not in norm(text):
+        text = norm(title) + " " + norm(text)       # K PLUS: direction is only in the title
+    if re.match(r"^(แจ้งเตือน)?รายการ\S*$", norm(text).replace(" ", "")) and not re.search(r"\d", text):
+        # LINE KBank Live now only says "แจ้งเตือนรายการเงินเข้า" — nothing to read, don't fill the inbox
+        update(lambda d: d.update(last_in=received.isoformat(timespec="seconds"), last_status="ignored"))
+        return "ignored", None
     p = parse(text, received)
 
     def fn(d):
@@ -263,6 +305,18 @@ def ingest(text, source="", received=None, title=None):
         key = _key(p)
         if key in d["seen"]:
             return "duplicate", None
+        if p.get("kplus") or p.get("balance") is not None:
+            # the same payment can arrive twice (K PLUS app + SMS) — skip if a KBank item with the
+            # same amount & direction is already within 3 minutes
+            for x in d["items"][:40]:
+                try:
+                    dt = abs((datetime.fromisoformat(x["time"]) - p["time"]).total_seconds())
+                except Exception:
+                    continue
+                same_kind = x["kind"] == p["kind"] or {x["kind"], p["kind"]} <= {"expense", "transfer"}
+                if (x.get("wallet") == "kbank" and same_kind and abs(x["amount"] - p["amount"]) < 0.01
+                        and dt <= 180 and bool(x.get("kplus")) != bool(p.get("kplus"))):
+                    return "duplicate", None
         d["seen"][key] = received.isoformat(timespec="seconds")
         item = build_item(d, p, source, text)
         d["items"].insert(0, item)
@@ -309,6 +363,8 @@ def build_item(d, p, source, text):
             "kind": p["kind"], "amount": round(p["amount"], 2), "wallet": "kbank", "to": "",
             "category": "", "merchant": merchant[:60], "note": "", "auto": True,
             "source": source[:40], "raw": mask(norm(text))[:300], "review": False}
+    if p.get("kplus"):
+        item["kplus"] = True
     hint = merchant + " " + norm(text)
     if p["kind"] == "expense":
         w = to_wallet(hint)
