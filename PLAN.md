@@ -54,7 +54,7 @@ push ขึ้น `main` → เซิร์ฟเวอร์เช็ก GitHu
 - เลยวันต่ออายุแล้ว ระบบเลื่อนไปรอบถัดไปให้เอง (เฉพาะ "ใช้อยู่")
 
 ## รายรับรายจ่าย (/money)
-- มือถือ Android + MacroDroid: Notification Received (Messages + K PLUS) → HTTP POST `/money/in?k=<รหัสลับ>` body `title: [not_title]\ntext: [notification]`
+- มือถือ Android + MacroDroid: Notification Received (Messages + K PLUS) → HTTP POST `/money/in?k=<รหัสลับ>` body `title: {not_title}\ntext: [notification]`
 - รับเฉพาะ title ที่มีคำว่า KBank (SMS "KBank", LINE "KBank Live") · อื่น ๆ ทิ้งไม่เก็บ · OTP ทิ้ง
 - SMS รูดบัตร KBank: `ชำระ 3,522.58บ บัตร x-5676@ร้าน 18:47น เหลือ 434.76บ` (มี "คืนเงิน" ด้วย) — บัตร x-5676 ผูกบัญชี x1765 = กระเป๋า KBank ใบเดียว
 - LINE KBank Live ใช้กับโอนเข้า/ออก · ยังไม่เห็นข้อความแจ้งเตือนจริง — ถ้าอ่านไม่ออกจะไปอยู่ "อ่านไม่ออก" ให้ดูรูปแบบแล้วสอน parser
