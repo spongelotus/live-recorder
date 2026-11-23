@@ -6,6 +6,7 @@ import json
 import logging
 import mimetypes
 import os
+import re
 import shutil
 import threading
 import time
@@ -859,7 +860,8 @@ class Handler(ShopPages, BaseHTTPRequestHandler):
 
         edit_id = (q.get("edit") or [""])[0]
         editing = next((it for it in d["items"] if it["id"] == edit_id), None)
-        parts.append(f'<details class="fold" id="form"{" open" if editing else ""} style="margin-top:6px">'
+        adding = (q.get("add_from") or [""])[0] and any(x["id"] == q["add_from"][0] for x in d["inbox"])
+        parts.append(f'<details class="fold" id="form"{" open" if editing or adding else ""} style="margin-top:6px">'
                      f'<summary>{"แก้ไขรายการ" if editing else "+ เพิ่มรายการเอง"}</summary>{self.money_form(d, editing)}</details>')
 
         rev = money.needs_review(d)
@@ -994,6 +996,12 @@ class Handler(ShopPages, BaseHTTPRequestHandler):
         src = next((x for x in d["inbox"] if x["id"] == (q.get("add_from") or [""])[0]), None)
         if new and src:
             it.update(wallet="kbank", note="", time=src["at"][:16])
+            # fill in what we can read from the message (amount, in/out, time)
+            p = money.parse("รายการโอน/ถอน " + src["text"]) if "จำนวนเงิน" in src["text"] and "รายการ" not in src["text"] \
+                else money.parse(src["text"])
+            if p:
+                it.update(amount=p["amount"], time=p["time"].strftime("%Y-%m-%dT%H:%M"),
+                          kind="income" if re.search(r"เงินเข้า|รับโอน", src["text"]) else p["kind"])
         amount = "" if it.get("amount") in ("", None) else f'{float(it["amount"]):.2f}'.rstrip("0").rstrip(".")
 
         def radio(name, choices, cur):
