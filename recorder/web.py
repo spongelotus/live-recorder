@@ -1072,7 +1072,8 @@ if(to)f.to.value=to;f.category.value=c||'';if(n!==undefined)f.merchant.value=n;s
 <ol class="steps"><li>ติดตั้ง <b>MacroDroid</b> จาก Google Play (ผู้พัฒนา ArloSoft) · ให้สิทธิ์ <b>การเข้าถึงการแจ้งเตือน</b> อย่างเดียว</li>
 <li>กด <b>Add Macro</b> → Trigger: <b>Notification</b> → <b>Notification Received</b> → เลือกแอป <b>Messages</b> และ <b>LINE</b></li>
 <li>Action: <b>Web Interactions</b> → <b>HTTP Request</b> · Method <b>POST</b> · URL ด้านล่าง</li>
-<li>Body (Content type <code>text/plain</code>):<div class="raw">title: [notification_title]<br>text: [notification]</div></li>
+<li>Body (Content type <code>text/plain</code>):<div class="raw">title: [not_title]<br>text: [notification]</div>
+<span class="muted">ใส่ตัวแปรโดยกดปุ่ม <b>…</b> (Magic Text) แล้วเลือก "หัวข้อการแจ้งเตือน / Notification Title" กับ "ข้อความการแจ้งเตือน / Notification Text" — อย่าพิมพ์เอง</span></li>
 <li>บันทึก macro แล้วไปที่ ตั้งค่า Android → แบตเตอรี่ → MacroDroid → <b>ไม่จำกัด</b></li></ol>
 <label>URL สำหรับ MacroDroid (มีรหัสลับ — อย่าแชร์)</label><input readonly value="{E(url)}" onclick="this.select()">
 <p class="muted">ระบบรับเฉพาะข้อความที่มาจาก KBank · ข้อความอื่นทิ้งทันทีไม่เก็บ · OTP ไม่เก็บ · เลขบัญชีเก็บแค่ 4 ตัวท้าย</p>

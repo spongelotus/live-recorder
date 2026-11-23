@@ -277,6 +277,8 @@ def ingest(text, source="", received=None, title=None):
     status: added | duplicate | otp | unread | ignored | empty"""
     received = received or now()
     text = (text or "")[:2000]
+    if title is not None and re.fullmatch(r"\s*\[[a-z_]+\]\s*", title):
+        title = ""      # MacroDroid sent the magic-text name itself (variable not filled in)
     if not norm(text) or (title is not None and not is_bank(title, text)):
         # still note that the phone reached us (shows "connected" on the page); content is not kept
         st = "empty" if not norm(text) else "ignored"
