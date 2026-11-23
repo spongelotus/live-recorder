@@ -161,6 +161,9 @@ def _when(hhmm, received):
         return received
 
 
+# last 4 digits of the KBank account that is the "KBank" wallet (K PLUS notifications from other accounts are not booked)
+KBANK_MAIN = {"1765"}
+
 TH_MONTHS = {"ม.ค.": 1, "ก.พ.": 2, "มี.ค.": 3, "เม.ย.": 4, "พ.ค.": 5, "มิ.ย.": 6,
              "ก.ค.": 7, "ส.ค.": 8, "ก.ย.": 9, "ต.ค.": 10, "พ.ย.": 11, "ธ.ค.": 12}
 
@@ -199,6 +202,9 @@ def parse(text, received=None):
         kind = "income" if word in ("เงินเข้า", "รับโอน") else "expense"
         if not word:
             kind = "income" if re.search(r"เงินเข้า|รับโอน|ฝาก", t) else "expense"
+        acct = re.search(r"บัญชี\s*\S*?(\d{4})-?x?\b", t)
+        if acct and acct.group(1) not in KBANK_MAIN:
+            return None     # another account (e.g. the savings one) — goes to the inbox, never auto-booked
         when = _kplus_date(m.group(3), m.group(4), m.group(5), m.group(6), received)
         return {"kind": kind, "amount": num(m.group(2)), "merchant": "", "card": "",
                 "time": when, "balance": None, "kplus": True}
