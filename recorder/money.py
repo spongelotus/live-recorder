@@ -261,6 +261,9 @@ def _key(p):
 
 def is_bank(title, text):
     """Only KBank messages are read; anything else from the phone is dropped unseen."""
+    # Bangkok Bank ("BANGKOKBANK" contains "KBANK") — card x-0140 is the company card, never kept
+    if re.search(r"BANGKOK\s*BANK|BBL", (title or "").upper()) or re.search(r"X\s*-?\s*0140\b", norm(text), re.I):
+        return False
     if "KBANK" in (title or "").upper().replace(" ", "") or re.search(r"^รายการ", norm(title)):
         return True
     t = norm(text)
